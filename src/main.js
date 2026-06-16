@@ -29,7 +29,10 @@ document.querySelector('#app').innerHTML = `
     <main class="flex-1 flex flex-col overflow-hidden">
       <div class="h-11 flex items-center justify-between px-4 border-b border-neutral-200 shrink-0">
         <div id="header" class="flex gap-2"></div>
-        <a id="open-btn" target="_blank" class="text-xs px-2.5 py-1 rounded-md bg-neutral-100 hover:bg-neutral-200 text-neutral-600 transition-colors hidden">Open ↗</a>
+        <div class="flex gap-2">
+          <button id="restart-btn" class="text-xs px-2.5 py-1 rounded-md bg-neutral-900 hover:bg-neutral-700 text-white transition-colors hidden">Restart ↺</button>
+          <a id="open-btn" target="_blank" class="text-xs px-2.5 py-1 rounded-md bg-neutral-900 hover:bg-neutral-700 text-white transition-colors hidden">Open ↗</a>
+        </div>
       </div>
       <iframe id="frame" class="flex-1 w-full border-0 bg-white"></iframe>
     </main>
@@ -40,6 +43,9 @@ const nav = document.querySelector('#nav')
 const frame = document.querySelector('#frame')
 const header = document.querySelector('#header')
 const openBtn = document.querySelector('#open-btn')
+const restartBtn = document.querySelector('#restart-btn')
+
+restartBtn.addEventListener('click', () => { frame.src = frame.src })
 
 let active = null
 
@@ -52,6 +58,7 @@ function select(item, el) {
   header.innerHTML = `<span class="${pill}">${item.date}</span><span class="${pill} capitalize">${item.label}</span>`
   openBtn.href = item.url
   openBtn.classList.remove('hidden')
+  restartBtn.classList.remove('hidden')
 }
 
 for (const year of years) {
