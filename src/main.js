@@ -1,60 +1,74 @@
 import './style.css'
-import javascriptLogo from './assets/javascript.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import { setupCounter } from './counter.js'
 
+const modules = import.meta.glob('./sketches/**/*.html', { query: '?url', import: 'default', eager: true })
+
+// Build { year -> [{ name, label, url }] }
+const index = {}
+for (const [path, url] of Object.entries(modules)) {
+  const m = path.match(/sketches\/(\d{4})\/(m\d+-d\d+-([^/]+))\//)
+  if (!m) continue
+  const [, year, folder, slug] = m
+  const label = slug.replace(/-/g, ' ')
+  ;(index[year] ??= []).push({ folder, label, url })
+}
+const years = Object.keys(index).sort((a, b) => b - a)
+
+// Render
 document.querySelector('#app').innerHTML = `
-<section id="center">
-  <div class="hero">
-    <img src="${heroImg}" class="base" width="170" height="179">
-    <img src="${javascriptLogo}" class="framework" alt="JavaScript logo"/>
-    <img src="${viteLogo}" class="vite" alt="Vite logo" />
+  <div class="flex h-screen font-sans text-sm bg-white text-neutral-800">
+    <aside class="w-56 shrink-0 border-r border-neutral-200 flex flex-col overflow-hidden">
+      <div class="h-11 flex items-center px-4 border-b border-neutral-200 shrink-0">
+        <span class="font-semibold tracking-tight text-base">sketches</span>
+      </div>
+      <nav id="nav" class="flex-1 overflow-y-auto py-2"></nav>
+    </aside>
+    <main class="flex-1 flex flex-col overflow-hidden">
+      <div class="h-11 flex items-center justify-between px-4 border-b border-neutral-200 shrink-0">
+        <span id="header" class="text-xs text-neutral-400 font-mono tracking-wide"></span>
+        <a id="open-btn" target="_blank" class="text-xs px-2.5 py-1 rounded-md bg-neutral-100 hover:bg-neutral-200 text-neutral-600 transition-colors hidden">Open ↗</a>
+      </div>
+      <iframe id="frame" class="flex-1 w-full border-0 bg-white"></iframe>
+    </main>
   </div>
-  <div>
-    <h1>Get started</h1>
-    <p>Edit <code>src/main.js</code> and save to test <code>HMR</code></p>
-  </div>
-  <button id="counter" type="button" class="counter"></button>
-</section>
-
-<div class="ticks"></div>
-
-<section id="next-steps">
-  <div id="docs">
-    <svg class="icon" role="presentation" aria-hidden="true"><use href="/icons.svg#documentation-icon"></use></svg>
-    <h2>Documentation</h2>
-    <p>Your questions, answered</p>
-    <ul>
-      <li>
-        <a href="https://vite.dev/" target="_blank">
-          <img class="logo" src="${viteLogo}" alt="" />
-          Explore Vite
-        </a>
-      </li>
-      <li>
-        <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript" target="_blank">
-          <img class="button-icon" src="${javascriptLogo}" alt="">
-          Learn more
-        </a>
-      </li>
-    </ul>
-  </div>
-  <div id="social">
-    <svg class="icon" role="presentation" aria-hidden="true"><use href="/icons.svg#social-icon"></use></svg>
-    <h2>Connect with us</h2>
-    <p>Join the Vite community</p>
-    <ul>
-      <li><a href="https://github.com/vitejs/vite" target="_blank"><svg class="button-icon" role="presentation" aria-hidden="true"><use href="/icons.svg#github-icon"></use></svg>GitHub</a></li>
-      <li><a href="https://chat.vite.dev/" target="_blank"><svg class="button-icon" role="presentation" aria-hidden="true"><use href="/icons.svg#discord-icon"></use></svg>Discord</a></li>
-      <li><a href="https://x.com/vite_js" target="_blank"><svg class="button-icon" role="presentation" aria-hidden="true"><use href="/icons.svg#x-icon"></use></svg>X.com</a></li>
-      <li><a href="https://bsky.app/profile/vite.dev" target="_blank"><svg class="button-icon" role="presentation" aria-hidden="true"><use href="/icons.svg#bluesky-icon"></use></svg>Bluesky</a></li>
-    </ul>
-  </div>
-</section>
-
-<div class="ticks"></div>
-<section id="spacer"></section>
 `
 
-setupCounter(document.querySelector('#counter'))
+const nav = document.querySelector('#nav')
+const frame = document.querySelector('#frame')
+const header = document.querySelector('#header')
+const openBtn = document.querySelector('#open-btn')
+
+let active = null
+
+function select(item, el) {
+  if (active?.el) active.el.classList.remove('bg-neutral-100', 'text-neutral-900', 'font-medium')
+  active = { item, el }
+  el.classList.add('bg-neutral-100', 'text-neutral-900', 'font-medium')
+  frame.src = item.url
+  header.textContent = item.folder
+  openBtn.href = item.url
+  openBtn.classList.remove('hidden')
+}
+
+for (const year of years) {
+  const section = document.createElement('div')
+  section.className = 'mb-1'
+  section.innerHTML = `<div class="px-4 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-widest text-neutral-400">${year}</div>`
+
+  for (const item of index[year]) {
+    const btn = document.createElement('button')
+    btn.className = 'w-full text-left px-4 py-1.5 text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900 transition-colors capitalize'
+    btn.textContent = item.label
+    btn.addEventListener('click', () => select(item, btn))
+    section.appendChild(btn)
+  }
+
+  nav.appendChild(section)
+}
+
+// Auto-select first sketch
+const firstYear = years[0]
+if (firstYear) {
+  const firstItem = index[firstYear][0]
+  const firstBtn = nav.querySelector('button')
+  if (firstBtn) select(firstItem, firstBtn)
+}
