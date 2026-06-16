@@ -11,6 +11,9 @@ for (const [path, url] of Object.entries(modules)) {
   const label = slug.replace(/-/g, ' ')
   ;(index[year] ??= []).push({ folder, label, url })
 }
+for (const year of Object.keys(index)) {
+  index[year].sort((a, b) => b.folder.localeCompare(a.folder))
+}
 const years = Object.keys(index).sort((a, b) => b - a)
 
 // Render
