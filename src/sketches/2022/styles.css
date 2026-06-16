@@ -5,6 +5,14 @@ For all screens no matter what size - smallest screen
   outline: 0px solid transparent;
 }
 
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
 body {
   font-size: 1rem;
   overscroll-behavior-y: contain;
