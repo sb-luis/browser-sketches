@@ -55,26 +55,20 @@ function select(item, el) {
   el.classList.add('bg-neutral-100', 'text-neutral-900', 'font-medium')
   frame.src = item.url
   const pill = 'text-xs px-2.5 py-1 rounded-md bg-neutral-100 text-neutral-600 font-mono'
-  header.innerHTML = `<span class="${pill}">${item.date}</span><span class="${pill} capitalize">${item.label}</span>`
+  header.innerHTML = `<span class="${pill}">${item.date}</span><span class="${pill}">${item.label}</span>`
   openBtn.href = item.url
   openBtn.classList.remove('hidden')
   restartBtn.classList.remove('hidden')
 }
 
 for (const year of years) {
-  const section = document.createElement('div')
-  section.className = 'mb-1'
-  section.innerHTML = `<div class="px-4 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-widest text-neutral-400">${year}</div>`
-
   for (const item of index[year]) {
     const btn = document.createElement('button')
-    btn.className = 'w-full text-left px-4 py-1.5 text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900 transition-colors capitalize'
+    btn.className = 'w-full text-left px-4 py-1.5 text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900 transition-colors'
     btn.textContent = item.label
     btn.addEventListener('click', () => select(item, btn))
-    section.appendChild(btn)
+    nav.appendChild(btn)
   }
-
-  nav.appendChild(section)
 }
 
 // Auto-select first sketch
