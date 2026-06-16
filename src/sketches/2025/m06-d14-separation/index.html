@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>separation</title>
+  <style>body { margin: 0; overflow: hidden; }</style>
+</head>
+<body>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.3/p5.min.js"></script>
+  <script>
+    new p5(function(p) {
+      let vehicles = []
+
+      p.setup = () => {
+        p.createCanvas(p.windowWidth, p.windowHeight)
+        for (let i = 0; i < 100; i++) {
+          vehicles.push(new Vehicle(p.random(p.width), p.random(p.height)))
+        }
+      }
+
+      p.draw = () => {
+        p.background(200)
+        for (let i = 0; i < vehicles.length; i++) {
+          vehicles[i].applyBehaviours(vehicles)
+          vehicles[i].wrapAoundEdges()
+          vehicles[i].update()
+          vehicles[i].render()
+        }
+      }
+
+      class Vehicle {
+        constructor(x, y, maxSpeed = 3, maxForce = 0.2) {
+          this.position = p.createVector(x, y)
+          this.velocity = p.createVector(p.random(), p.random())
+          this.acceleration = p.createVector()
+          this.maxSpeed = maxSpeed
+          this.maxForce = maxForce
+          this.mass = 1
+          this.r = 8
+          this.wanderTheta = 0.0
+        }
+
+        separate(_vehicles) {
+          let desiredSeparation = this.r * 2
+          let sum = p.createVector()
+          let count = 0
+          for (let other of _vehicles) {
+            let d = p5.Vector.dist(this.position, other.position)
+            if (this !== other && d < desiredSeparation) {
+              let diff = p5.Vector.sub(this.position, other.position)
+              diff.setMag(1 / d)
+              sum.add(diff)
+              count++
+            }
+          }
+
+          if (count > 0) {
+            sum.div(count)
+            sum.setMag(this.maxSpeed)
+            let steer = p5.Vector.sub(sum, this.velocity)
+            steer.limit(this.maxForce)
+            return steer
+          }
+        }
+
+        wrapAoundEdges() {
+          if (this.position.x > p.width) this.position.x = 0
+          else if (this.position.x < 0) this.position.x = p.width
+          if (this.position.y > p.height) this.position.y = 0
+          else if (this.position.y < 0) this.position.y = p.height
+        }
+
+        applyBehaviours(vehicles) {
+          let separate = this.separate(vehicles)
+          let seek = this.seek(p.createVector(p.mouseX, p.mouseY))
+
+          if (separate) {
+            separate.mult(1.5)
+            this.applyForce(separate)
+          }
+          if (seek) {
+            seek.mult(0.5)
+            this.applyForce(seek)
+          }
+        }
+
+        seek(target) {
+          const desired = p5.Vector.sub(target, this.position)
+          const d = desired.mag()
+          if (d < 100) {
+            const m = p.map(d, 0, 100, 0, this.maxSpeed)
+            desired.setMag(m)
+          } else {
+            desired.setMag(this.maxSpeed)
+          }
+          const steer = p5.Vector.sub(desired, this.velocity)
+          steer.limit(this.maxForce)
+          return steer
+        }
+
+        applyForce(force) {
+          const newForce = p5.Vector.div(force, this.mass)
+          this.acceleration.add(newForce)
+        }
+
+        update() {
+          this.velocity.add(this.acceleration)
+          this.position.add(this.velocity)
+          this.acceleration.mult(0)
+        }
+
+        render() {
+          p.fill(0)
+          p.circle(this.position.x, this.position.y, this.r)
+        }
+      }
+    })
+  </script>
+</body>
+</html>

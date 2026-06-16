@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>field vehicles</title>
+  <style>body { margin: 0; overflow: hidden; }</style>
+</head>
+<body>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.3/p5.min.js"></script>
+  <script>
+    new p5(function(p) {
+      let field
+      let vehicles = []
+      let debug = true
+
+      p.setup = () => {
+        p.createCanvas(p.windowWidth, p.windowHeight)
+        for (let i = 0; i < 30; i++) {
+          const startY = (p.height / 30) * i
+          const vehicle = new Vehicle(p.width / 2, startY)
+          vehicles.push(vehicle)
+        }
+        field = new FlowField()
+      }
+
+      p.draw = () => {
+        p.background(200)
+        field.render()
+
+        for (let i = 0; i < vehicles.length; i++) {
+          vehicles[i].follow(field)
+          vehicles[i].wrapAoundEdges()
+          vehicles[i].update()
+          vehicles[i].render()
+        }
+      }
+
+      class FlowField {
+        constructor() {
+          this.resolution = 20
+          this.cols = p.floor(p.width / this.resolution)
+          this.rows = p.floor(p.height / this.resolution)
+          this.xSpacing = p.width / this.cols
+          this.ySpacing = p.height / this.rows
+          this.flowOff = 0
+          this.field = new Array(this.rows)
+          for (let i = 0; i < this.rows; i++) {
+            this.field[i] = new Array(this.cols)
+          }
+          this.update()
+        }
+
+        update() {
+          p.noiseSeed(10000)
+          let yOff = 0
+          for (let y = 0; y < this.rows; y++) {
+            let xOff = 0
+            for (let x = 0; x < this.cols; x++) {
+              let angle = p.map(
+                p.noise(xOff + this.flowOff, yOff + this.flowOff),
+                0, 1, 0, p.TWO_PI
+              )
+              this.field[y][x] = p5.Vector.fromAngle(angle)
+              yOff += 0.1
+            }
+            xOff += 0.1
+          }
+          this.flowOff += 0.01
+        }
+
+        lookup(pos) {
+          let col = p.constrain(p.floor(pos.x / this.resolution), 0, this.cols - 1)
+          let row = p.constrain(p.floor(pos.y / this.resolution), 0, this.rows - 1)
+          return this.field[row][col].copy()
+        }
+
+        render() {
+          if (!debug) return
+          for (let y = 0; y < this.rows; y++) {
+            for (let x = 0; x < this.cols; x++) {
+              const vectorOrigin = p.createVector(x * this.xSpacing, y * this.ySpacing)
+              p.fill(0)
+              const vec = this.field[y][x].copy().mult(8)
+              p.line(vectorOrigin.x, vectorOrigin.y, vectorOrigin.x + vec.x, vectorOrigin.y + vec.y)
+            }
+          }
+        }
+      }
+
+      class Vehicle {
+        constructor(x, y) {
+          this.position = p.createVector(x, y)
+          this.velocity = p.createVector()
+          this.acceleration = p.createVector()
+          this.maxSpeed = 8
+          this.maxForce = 0.5
+          this.mass = 1
+          this.r = 8
+          this.wanderTheta = 0.0
+        }
+
+        follow(flow) {
+          let desired = flow.lookup(this.position)
+          desired.setMag(this.maxSpeed)
+          let steer = p5.Vector.sub(desired, this.velocity)
+          steer.limit(this.maxForce)
+          this.applyForce(steer)
+        }
+
+        wrapAoundEdges() {
+          if (this.position.x > p.width) this.position.x = 0
+          else if (this.position.x < 0) this.position.x = p.width
+          if (this.position.y > p.height) this.position.y = 0
+          else if (this.position.y < 0) this.position.y = p.height
+        }
+
+        applyForce(force) {
+          const newForce = p5.Vector.div(force, this.mass)
+          this.acceleration.add(newForce)
+        }
+
+        update() {
+          this.velocity.add(this.acceleration)
+          this.position.add(this.velocity)
+          this.acceleration.mult(0)
+        }
+
+        render() {
+          let angle = this.velocity.heading()
+          p.fill(127)
+          p.push()
+          p.translate(this.position.x, this.position.y)
+          p.rotate(angle)
+          p.beginShape()
+          p.vertex(this.r * 1.25, 0)
+          p.vertex(-this.r * 1.25, -this.r)
+          p.vertex(-this.r * 1.25, this.r)
+          p.endShape(p.CLOSE)
+          p.pop()
+        }
+      }
+    })
+  </script>
+</body>
+</html>

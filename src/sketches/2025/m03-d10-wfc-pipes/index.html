@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>wfc pipes</title>
+    <style>
+      html, body { margin: 0; padding: 0; overflow: hidden; }
+    </style>
+  </head>
+  <body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.3/p5.min.js"></script>
+    <script>
+      new p5(function (p) {
+        const tiles = []
+        const grid = []
+        const TILESIZE = 50
+        const GRIDRES = 4
+        const BLANK = 0, UP = 1, RIGHT = 2, DOWN = 3, LEFT = 4
+
+        function preload() {
+          tiles[BLANK] = p.loadImage('../assets/wfc-tiles/tile-blank.png')
+          tiles[UP]    = p.loadImage('../assets/wfc-tiles/tile-up.png')
+          tiles[RIGHT] = p.loadImage('../assets/wfc-tiles/tile-right.png')
+          tiles[DOWN]  = p.loadImage('../assets/wfc-tiles/tile-down.png')
+          tiles[LEFT]  = p.loadImage('../assets/wfc-tiles/tile-left.png')
+        }
+
+        function collapseCell(cell) {
+          const i = Math.floor(p.random(0, cell.options.length))
+          cell.options = [i]
+        }
+
+        function waveFuncCollapse(cells) {
+          cells.sort((a, b) => a.options.length - b.options.length)
+          cells = cells.filter(c => c.options.length <= cells[0].options.length)
+          collapseCell(cells[Math.floor(p.random(0, cells.length))])
+        }
+
+        p.setup = () => {
+          p.createCanvas(p.windowWidth, p.windowHeight)
+          preload()
+          for (let i = 0; i < GRIDRES * GRIDRES; i++) {
+            grid[i] = { options: [BLANK, UP, RIGHT, DOWN, LEFT] }
+          }
+        }
+
+        let drawStep = 1
+        p.draw = () => {
+          for (let i = 0; i < tiles.length; i++) tiles[i].resize(TILESIZE, TILESIZE)
+          const remaining = grid.filter(c => c.options.length > 1)
+          if (remaining.length >= 1) {
+            waveFuncCollapse(remaining)
+            p.background(200)
+            for (let y = 0; y < GRIDRES; y++) {
+              for (let x = 0; x < GRIDRES; x++) {
+                let cell = grid[y + x * GRIDRES]
+                if (cell.options.length === 1) {
+                  p.image(tiles[cell.options[0]], x * TILESIZE, y * TILESIZE)
+                } else {
+                  p.fill(80); p.rect(x * TILESIZE, y * TILESIZE, TILESIZE, TILESIZE)
+                }
+              }
+            }
+            drawStep++
+          }
+        }
+      })
+    </script>
+  </body>
+</html>

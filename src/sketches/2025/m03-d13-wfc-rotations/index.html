@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>wfc rotations</title>
+    <style>
+      html, body { margin: 0; padding: 0; overflow: hidden; }
+    </style>
+  </head>
+  <body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.3/p5.min.js"></script>
+    <script>
+      new p5(async function (p) {
+        const tilesData = [
+          { imagePath: '../assets/wfc-tiles/tile-blank.png',        edges: [0,0,0,0] },
+          { imagePath: '../assets/wfc-tiles/tile-up.png',           edges: [1,1,0,1] },
+          { imagePath: '../assets/wfc-tiles/tile-corner-up-right.png', edges: [1,1,0,0] }
+        ]
+        let tiles = []
+        const grid = []
+        const gridRes = 100
+        const tileSize = 8
+        let sketchIsReady = false, sketchIsDone = false
+        let collapseStep = 1
+        const collapseStepsPerFrame = 50
+
+        function loadImageAsync(path) {
+          return new Promise(resolve => p.loadImage(path, img => resolve(img)))
+        }
+
+        function rotateTile(tile, rotations) {
+          const w = tile.image.width, h = tile.image.height
+          const g = p.createGraphics(w, h)
+          g.imageMode(p.CENTER); g.translate(w/2, h/2); g.rotate(p.HALF_PI * rotations)
+          g.image(tile.image, 0, 0)
+          const newEdges = tile.edges.map((_, i) => tile.edges[(i + tile.edges.length - rotations) % tile.edges.length])
+          return { image: g, edges: newEdges }
+        }
+
+        function reduceNeighboursEntropy(cell) {
+          const cellTile = cell.options[0]
+          for (let i = 0; i < cell.neighbours.length; i++) {
+            const nIdx = cell.neighbours[i]
+            if (nIdx === -1) continue
+            const nb = grid[nIdx]
+            if (nb.options.length <= 1) continue
+            const old = nb.options.length
+            // i=0 top, i=1 right, i=2 bottom, i=3 left
+            // opposite edges: top↔bottom(2), right↔left(3), bottom↔top(0), left↔right(1)
+            const opp = [2,3,0,1][i]
+            nb.options = nb.options.filter(o => cellTile.edges[i] === o.edges[opp])
+            if (nb.options.length < old && nb.options.length === 1) reduceNeighboursEntropy(nb)
+          }
+        }
+
+        function collapseCell(cell) {
+          cell.options = [cell.options[Math.floor(p.random(0, cell.options.length))]]
+          reduceNeighboursEntropy(cell)
+        }
+
+        function waveFuncCollapse(cells) {
+          cells.sort((a,b) => a.options.length - b.options.length)
+          cells = cells.filter(c => c.options.length <= cells[0].options.length)
+          collapseCell(cells[Math.floor(p.random(0, cells.length))])
+        }
+
+        function renderGrid() {
+          p.background(200)
+          for (let y = 0; y < gridRes; y++) {
+            for (let x = 0; x < gridRes; x++) {
+              const cell = grid[y + x * gridRes]
+              if (cell.options.length === 1) {
+                p.image(cell.options[0].image, x * tileSize, y * tileSize)
+              } else {
+                p.fill(80); p.rect(x * tileSize, y * tileSize, tileSize, tileSize)
+              }
+            }
+          }
+        }
+
+        p.setup = async () => {
+          p.createCanvas(p.windowWidth, p.windowHeight)
+          for (const td of tilesData) {
+            const img = await loadImageAsync(td.imagePath)
+            img.resize(tileSize, tileSize)
+            tiles.push({ image: img, edges: td.edges })
+          }
+          // add rotations
+          tiles.push(rotateTile(tiles[1], 1)) // pipe right
+          tiles.push(rotateTile(tiles[1], 2)) // pipe bottom
+          tiles.push(rotateTile(tiles[1], 3)) // pipe left
+          tiles.push(rotateTile(tiles[2], 1)) // corner right-bottom
+          tiles.push(rotateTile(tiles[2], 2)) // corner bottom-left
+          tiles.push(rotateTile(tiles[2], 3)) // corner left-up
+
+          for (let y = 0; y < gridRes; y++) {
+            for (let x = 0; x < gridRes; x++) {
+              const N = -1, idx = y + x * gridRes
+              grid[idx] = {
+                options: [...tiles],
+                neighbours: [
+                  y === 0         ? N : y-1 + x*gridRes,
+                  x === gridRes-1 ? N : y + (x+1)*gridRes,
+                  y === gridRes-1 ? N : y+1 + x*gridRes,
+                  x === 0         ? N : y + (x-1)*gridRes
+                ]
+              }
+            }
+          }
+          sketchIsReady = true
+        }
+
+        p.draw = () => {
+          if (!sketchIsReady || sketchIsDone) return
+          for (let j = 0; j < collapseStepsPerFrame; j++) {
+            const remaining = grid.filter(c => c.options.length > 1)
+            if (!remaining.length) { sketchIsDone = true; break }
+            waveFuncCollapse(remaining)
+            collapseStep++
+          }
+          renderGrid()
+        }
+      })
+    </script>
+  </body>
+</html>

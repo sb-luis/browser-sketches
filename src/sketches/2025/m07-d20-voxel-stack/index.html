@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>voxel stack</title>
+  <style>body { margin: 0; overflow: hidden; }</style>
+</head>
+<body>
+  <script type="module">
+    import * as THREE from 'three'
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+
+    class Game {
+      constructor(cellSize = 1, gridDivisions = new THREE.Vector3(4, 6, 4)) {
+        this.cells = []
+        this.cellSize = cellSize
+        this.gridDivisions = gridDivisions
+        this.mouse = new THREE.Vector2()
+        this.cursor = {
+          position: new THREE.Vector3(),
+          direction: new THREE.Vector3()
+        }
+        this.planeXZ = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)
+        this.raycaster = new THREE.Raycaster()
+      }
+
+      start() {
+        this.createScene()
+        this.createGeometry()
+        this.createEventListeners()
+        this.renderer.setAnimationLoop(this.update.bind(this))
+      }
+
+      update() {
+        this.renderer.render(this.scene, this.camera)
+        this.orbitControls.update()
+      }
+
+      createScene() {
+        this.renderer = new THREE.WebGLRenderer()
+        this.renderer.setSize(window.innerWidth, window.innerHeight)
+        this.renderer.setClearColor(0xaaaaaa)
+        document.body.appendChild(this.renderer.domElement)
+
+        const light = new THREE.HemisphereLight(0xb1e1ff, 0xb97a20, 1)
+
+        this.camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 500)
+        this.orbitControls = new OrbitControls(this.camera, this.renderer.domElement)
+        this.orbitControls.enablePan = false
+        this.orbitControls.enableDamping = true
+        this.orbitControls.dampingFactor = 0.05
+        this.orbitControls.minPolarAngle = 0
+        this.orbitControls.maxPolarAngle = Math.PI / 2
+        this.orbitControls.minDistance = 15
+        this.orbitControls.maxDistance = 50
+        this.camera.position.set(15, 10, 15)
+        this.camera.lookAt(0, 0, 0)
+        this.orbitControls.update()
+
+        this.scene = new THREE.Scene()
+        this.scene.add(light)
+      }
+
+      createGeometry() {
+        this.materials = {}
+        this.meshes = {}
+
+        const cursorGeo = new THREE.BoxGeometry(this.cellSize, this.cellSize, this.cellSize)
+        this.materials.cursor = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0 })
+        this.meshes.cursor = new THREE.Mesh(cursorGeo, this.materials.cursor)
+        this.scene.add(this.meshes.cursor)
+
+        this.meshes.voxel = new THREE.BoxGeometry(this.cellSize, this.cellSize, this.cellSize)
+        this.materials.voxel = new THREE.MeshToonMaterial()
+
+        this.cellMaterials = {
+          active: new THREE.MeshToonMaterial({ color: 0xffffff }),
+          inactive: new THREE.MeshToonMaterial({ color: 0xbbbbbb })
+        }
+        this.planeGeometry = new THREE.PlaneGeometry(this.cellSize * 0.05, this.cellSize * 0.05)
+        this.prevActiveCell = null
+        this.drawGrid(this.scene)
+
+        // 3D grid of cells
+        for (let x = 0; x < this.gridDivisions.x; x++) {
+          for (let y = 0; y < this.gridDivisions.y; y++) {
+            for (let z = 0; z < this.gridDivisions.z; z++) {
+              const position = new THREE.Vector3(
+                -this.gridDivisions.x * 0.5 + x * this.cellSize + this.cellSize * 0.5,
+                y * this.cellSize + this.cellSize * 0.5,
+                -this.gridDivisions.z * 0.5 + z * this.cellSize + this.cellSize * 0.5
+              )
+              this.cells.push({ focused: false, pos: position, voxel: null })
+            }
+          }
+        }
+      }
+
+      createVoxel(cell) {
+        cell.voxel = new THREE.Mesh(this.meshes.voxel, this.materials.voxel)
+        cell.voxel.position.set(cell.pos.x, cell.pos.y, cell.pos.z)
+        this.scene.add(cell.voxel)
+      }
+
+      drawGrid(scene) {
+        const gridSize = this.cellSize * this.gridDivisions.x
+        const contourMat = new THREE.LineDashedMaterial({ color: 0xffffff, scale: 1, dashSize: 1, gapSize: 0.5 })
+        const contour = [
+          new THREE.Vector3(-gridSize / 2, 0, -gridSize / 2),
+          new THREE.Vector3(gridSize / 2, 0, -gridSize / 2),
+          new THREE.Vector3(gridSize / 2, 0, gridSize / 2),
+          new THREE.Vector3(-gridSize / 2, 0, gridSize / 2),
+          new THREE.Vector3(-gridSize / 2, 0, -gridSize / 2)
+        ]
+        this.line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(contour), contourMat)
+        this.line.computeLineDistances()
+        scene.add(this.line)
+
+        const divisionsMat = new THREE.LineBasicMaterial({ color: 0xbbbbbb })
+        for (let i = 0; i < this.gridDivisions.x; i++) {
+          const hPts = [
+            new THREE.Vector3(-gridSize / 2, 0, -gridSize / 2 + i * this.cellSize),
+            new THREE.Vector3(gridSize / 2, 0, -gridSize / 2 + i * this.cellSize)
+          ]
+          if (i !== 0) scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(hPts), divisionsMat))
+
+          for (let j = 0; j < this.gridDivisions.z; j++) {
+            const vPts = [
+              new THREE.Vector3(-gridSize / 2 + j * this.cellSize, 0, -gridSize / 2),
+              new THREE.Vector3(-gridSize / 2 + j * this.cellSize, 0, gridSize / 2)
+            ]
+            if (j !== 0) scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(vPts), divisionsMat))
+          }
+        }
+      }
+
+      setCursor(clientX, clientY) {
+        this.mouse.x = (clientX / window.innerWidth) * 2 - 1
+        this.mouse.y = -(clientY / window.innerHeight) * 2 + 1
+        this.raycaster.setFromCamera(this.mouse, this.camera)
+
+        const voxels = this.cells.map((cell) => cell.voxel).filter((v) => v)
+        const voxelsIntersects = this.raycaster.intersectObjects([...voxels])
+        const planeIntersect = this.raycaster.ray.intersectPlane(this.planeXZ, new THREE.Vector3())
+
+        if (voxelsIntersects.length > 0) {
+          const intersect = voxelsIntersects[0]
+          const hoverCell = this.cells.find((cell) => cell.voxel === intersect.object)
+          if (hoverCell) {
+            this.cursor.direction = intersect.face.normal.clone()
+            const tolerance = 0.0001
+            const nextCell = this.cells.find((c) => {
+              const diff = new THREE.Vector3().subVectors(c.pos, hoverCell.pos)
+              return diff.distanceTo(this.cursor.direction) < tolerance
+            })
+            const focusedCell = nextCell || hoverCell
+            this.cursor.position.set(focusedCell.pos.x, focusedCell.pos.y, focusedCell.pos.z)
+            this.meshes.cursor.position.set(focusedCell.pos.x, focusedCell.pos.y, focusedCell.pos.z)
+            this.focusCell(focusedCell)
+          }
+        } else if (planeIntersect) {
+          let x = Math.floor(planeIntersect.x / this.cellSize) * this.cellSize + this.cellSize / 2
+          let z = Math.floor(planeIntersect.z / this.cellSize) * this.cellSize + this.cellSize / 2
+          const y = this.cellSize / 2
+          this.cursor.position.set(x, y, z)
+          const cell = this.getVoxel(this.cursor.position)
+          if (cell) {
+            this.meshes.cursor.position.set(x, y, z)
+            this.focusCell(cell)
+          }
+        }
+      }
+
+      createEventListeners() {
+        window.addEventListener('resize', () => {
+          const width = window.innerWidth
+          const height = window.innerHeight
+          this.renderer.setSize(width, height)
+          this.camera.aspect = width / height
+          this.camera.updateProjectionMatrix()
+        })
+
+        window.addEventListener('mousemove', (event) => {
+          this.setCursor(event.clientX, event.clientY)
+        })
+
+        window.addEventListener('click', (event) => {
+          this.setCursor(event.clientX, event.clientY)
+          const cursorPos = this.cursor.position
+          const cell = this.getVoxel(cursorPos)
+          if (cell && !cell.voxel) {
+            if (this.meshes.cursor.material.opacity === 0) this.meshes.cursor.material.opacity = 0.2
+            cell.voxel = new THREE.Mesh(this.meshes.voxel, this.materials.voxel)
+            cell.voxel.position.set(cursorPos.x, cursorPos.y, cursorPos.z)
+            this.scene.add(cell.voxel)
+          }
+        })
+      }
+
+      focusCell(cell) {
+        if (this.prevActiveCell === cell) return
+        if (this.meshes.cursor.material.opacity === 0) this.meshes.cursor.material.opacity = 0.2
+        for (const c of this.cells) {
+          c.focused = false
+          if (c.voxel && c.voxel.material !== this.cellMaterials.inactive) {
+            c.voxel.material = this.cellMaterials.inactive
+          }
+        }
+        cell.focused = true
+        if (cell.voxel) cell.voxel.material = this.cellMaterials.active
+        this.prevActiveCell = cell
+      }
+
+      getVoxel(position) {
+        for (const cell of this.cells) {
+          if (
+            position.x >= cell.pos.x - this.cellSize / 2 &&
+            position.x <= cell.pos.x + this.cellSize / 2 &&
+            position.y >= cell.pos.y - this.cellSize / 2 &&
+            position.y <= cell.pos.y + this.cellSize / 2 &&
+            position.z >= cell.pos.z - this.cellSize / 2 &&
+            position.z <= cell.pos.z + this.cellSize / 2
+          ) return cell
+        }
+      }
+    }
+
+    const game = new Game()
+    game.start()
+  </script>
+</body>
+</html>

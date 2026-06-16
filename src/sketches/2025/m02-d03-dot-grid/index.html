@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>dot grid</title>
+    <style>
+      html, body { margin: 0; padding: 0; overflow: hidden; }
+    </style>
+  </head>
+  <body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.3/p5.min.js"></script>
+    <script>
+      new p5(function (p) {
+        let resolution = 30
+
+        p.setup = () => {
+          p.createCanvas(p.windowWidth, p.windowHeight)
+        }
+
+        p.draw = () => {
+          p.background(255)
+          for (let x = 0; x < p.width; x += resolution) {
+            for (let y = 0; y < p.height; y += resolution) {
+              p.stroke(0)
+              p.circle(x, y, 3)
+            }
+          }
+        }
+      })
+    </script>
+  </body>
+</html>

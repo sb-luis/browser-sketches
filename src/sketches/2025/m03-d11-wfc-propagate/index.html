@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>wfc propagate</title>
+    <style>
+      html, body { margin: 0; padding: 0; overflow: hidden; }
+    </style>
+  </head>
+  <body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.3/p5.min.js"></script>
+    <script>
+      new p5(function (p) {
+        const tiles = {
+          blank: {
+            imagePath: '../assets/wfc-tiles/tile-blank.png',
+            possibleNeighbours: { up: ['blank','up'], down: ['blank','down'], left: ['blank','left'], right: ['blank','right'] }
+          },
+          up: {
+            imagePath: '../assets/wfc-tiles/tile-up.png',
+            possibleNeighbours: { up: ['down','left','right'], down: ['blank','down'], left: ['down','up','right'], right: ['down','up','left'] }
+          },
+          down: {
+            imagePath: '../assets/wfc-tiles/tile-down.png',
+            possibleNeighbours: { up: ['blank','up'], down: ['blank','down'], left: ['down','up','right'], right: ['down','up','left'] }
+          },
+          left: {
+            imagePath: '../assets/wfc-tiles/tile-left.png',
+            possibleNeighbours: { up: ['down','left','right'], down: ['up','left','right'], left: ['down','right','up'], right: ['blank','right'] }
+          },
+          right: {
+            imagePath: '../assets/wfc-tiles/tile-right.png',
+            possibleNeighbours: { up: ['down','left','right'], down: ['up','left','right'], left: ['blank','left'], right: ['down','left','up'] }
+          }
+        }
+        const grid = []
+        const gridRes = 80
+        const tileSize = 5
+
+        function preload() {
+          for (let key in tiles) tiles[key].image = p.loadImage(tiles[key].imagePath)
+        }
+
+        function dissipateEntropy(cell) {
+          const keys = Object.keys(cell.neighbours)
+          const possibilities = tiles[cell.options[0]].possibleNeighbours
+          for (let i = keys.length - 1; i >= 0; i--) {
+            const key = keys[i]
+            const idx = cell.neighbours[key]
+            if (idx === -1) continue
+            const neighbour = grid[idx]
+            neighbour.options = neighbour.options.filter(o => possibilities[key].includes(o))
+          }
+        }
+
+        function collapseCell(cell) {
+          const i = Math.floor(p.random(0, cell.options.length))
+          cell.options = [cell.options[i]]
+          dissipateEntropy(cell)
+        }
+
+        function waveFuncCollapse(cells) {
+          cells.sort((a, b) => a.options.length - b.options.length)
+          cells = cells.filter(c => c.options.length <= cells[0].options.length)
+          collapseCell(cells[Math.floor(p.random(0, cells.length))])
+        }
+
+        p.setup = () => {
+          p.createCanvas(p.windowWidth, p.windowHeight)
+          preload()
+          for (let y = 0; y < gridRes; y++) {
+            for (let x = 0; x < gridRes; x++) {
+              const N = -1
+              const idx = y + x * gridRes
+              grid[idx] = {
+                options: ['blank','up','down','left','right'],
+                neighbours: {
+                  up:    y === 0          ? N : y - 1 + x * gridRes,
+                  right: x === gridRes-1  ? N : y + (x+1) * gridRes,
+                  down:  y === gridRes-1  ? N : y + 1 + x * gridRes,
+                  left:  x === 0          ? N : y + (x-1) * gridRes
+                }
+              }
+            }
+          }
+        }
+
+        let drawStep = 1
+        p.draw = () => {
+          for (let key in tiles) tiles[key].image.resize(tileSize, tileSize)
+          const remaining = grid.filter(c => c.options.length > 1)
+          if (remaining.length >= 1) {
+            waveFuncCollapse(remaining)
+            p.background(200)
+            for (let y = 0; y < gridRes; y++) {
+              for (let x = 0; x < gridRes; x++) {
+                let cell = grid[y + x * gridRes]
+                if (cell.options.length === 1) {
+                  p.image(tiles[cell.options[0]].image, x * tileSize, y * tileSize)
+                } else {
+                  p.fill(80); p.rect(x * tileSize, y * tileSize, tileSize, tileSize)
+                }
+              }
+            }
+            drawStep++
+          }
+        }
+      })
+    </script>
+  </body>
+</html>

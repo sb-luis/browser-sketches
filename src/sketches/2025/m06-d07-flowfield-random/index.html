@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>flowfield random</title>
+  <style>body { margin: 0; overflow: hidden; }</style>
+</head>
+<body>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.3/p5.min.js"></script>
+  <script>
+    new p5(function(p) {
+      let field
+      let vehicle
+      let debug = true
+
+      p.setup = () => {
+        p.createCanvas(p.windowWidth, p.windowHeight)
+        vehicle = new Vehicle(p.width / 2, p.height / 2)
+        field = new FlowField(p.width, p.height)
+      }
+
+      p.draw = () => {
+        p.background(200)
+        field.render()
+      }
+
+      class FlowField {
+        constructor(w, h) {
+          this.resolution = 20
+          this.width = w
+          this.height = h
+          this.cols = p.floor(w / this.resolution)
+          this.rows = p.floor(h / this.resolution)
+          this.field = new Array(this.cols)
+          for (let i = 0; i < this.cols; i++) {
+            this.field[i] = new Array(this.rows)
+          }
+
+          for (let y = 0; y < this.cols; y++) {
+            for (let x = 0; x < this.rows; x++) {
+              const vec = p5.Vector.random2D()
+              this.field[y][x] = vec.mult(10)
+            }
+          }
+        }
+
+        render() {
+          for (let y = 0; y < this.cols; y++) {
+            for (let x = 0; x < this.rows; x++) {
+              const xSpacing = this.width / this.resolution
+              const ySpacing = this.height / this.resolution
+              const origin = p.createVector(x * xSpacing, y * ySpacing)
+              p.circle(origin.x, origin.y, 5)
+              p.line(origin.x, origin.y, origin.x + this.field[y][x].x, origin.y + this.field[y][x].y)
+            }
+          }
+        }
+      }
+
+      class Vehicle {
+        constructor(x, y) {
+          this.position = p.createVector(x, y)
+          this.velocity = p.createVector()
+          this.acceleration = p.createVector()
+          this.maxSpeed = 8
+          this.maxForce = 0.5
+          this.mass = 1
+          this.r = 8
+          this.wanderTheta = 0.0
+        }
+
+        applyForce(force) {
+          const newForce = p5.Vector.div(force, this.mass)
+          this.acceleration.add(newForce)
+        }
+
+        update() {
+          this.velocity.add(this.acceleration)
+          this.position.add(this.velocity)
+          this.acceleration.mult(0)
+        }
+
+        render() {
+          let angle = this.velocity.heading()
+          p.fill(127)
+          p.push()
+          p.translate(this.position.x, this.position.y)
+          p.rotate(angle)
+          p.beginShape()
+          p.vertex(this.r * 1.25, 0)
+          p.vertex(-this.r * 1.25, -this.r)
+          p.vertex(-this.r * 1.25, this.r)
+          p.endShape(p.CLOSE)
+          p.pop()
+        }
+      }
+    })
+  </script>
+</body>
+</html>

@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>screen wrap</title>
+    <style>
+      html, body { margin: 0; padding: 0; overflow: hidden; }
+    </style>
+  </head>
+  <body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.3/p5.min.js"></script>
+    <script>
+      new p5(function (p) {
+        class Mover {
+          constructor() {
+            this.pos = p.createVector(p.random(p.width), p.random(p.height))
+            this.vel = p.createVector(p.random(-2, 2), p.random(-2, 2))
+          }
+
+          wrapAroundEdges() {
+            if (this.pos.x > p.width) this.pos.x = 0
+            else if (this.pos.x < 0) this.pos.x = p.width
+            if (this.pos.y > p.height) this.pos.y = 0
+            else if (this.pos.y < 0) this.pos.y = p.height
+          }
+
+          update() {
+            this.pos.add(this.vel)
+          }
+
+          render() {
+            p.stroke(0)
+            p.fill(175)
+            p.circle(this.pos.x, this.pos.y, 48)
+          }
+        }
+
+        let mover
+
+        p.setup = () => {
+          p.createCanvas(p.windowWidth, p.windowHeight)
+          mover = new Mover()
+        }
+
+        p.draw = () => {
+          p.background(255)
+          mover.update()
+          mover.wrapAroundEdges()
+          mover.render()
+        }
+      })
+    </script>
+  </body>
+</html>

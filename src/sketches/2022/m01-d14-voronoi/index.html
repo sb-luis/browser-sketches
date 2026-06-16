@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+
+    <!-- Make viewport not scalable -->
+    <meta name="viewport" content="width=device-width, user-scalable=no" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>voronoi</title>
+
+    <!-- Favicon -->
+	<link rel="icon" type="image/png" href="../favicon.png" />
+
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="../styles.css" />
+  </head>
+
+  <body>
+    <a class="reset" href="voronoi00.html">.restart</a>
+    <canvas></canvas>
+
+    <!-- Sketch setup -->
+	<script>
+	let canvas = document.querySelector("canvas");
+	let ctx = canvas.getContext("2d");
+
+	canvas.width = window.innerWidth;
+	canvas.height = window.innerHeight;
+	</script>
+
+	<!--- Sketch Dependencies -->
+	<script src="../lib/math.js"></script>
+	<script src="../lib/mouseVec.js"></script>
+	<script src="../lib/time.js"></script>
+
+	<!--- Sketch -->
+	<script>
+
+	// --- CLASSES ---
+	class Point{
+		constructor(x, y, col){
+			this.pos = new Vector(x,y);
+			this.col = col;
+		}
+	}
+	// --- VARIABLES ---
+	const voronoiSeeds = 50;
+	const voronoiCompression = 8;
+	const points = [];
+
+	// --- FUNCTIONS ---
+	function generatePoints(n){
+		for(let i = 0; i < n; i++){
+			const x = Math.random() * innerWidth;
+			const y = Math.random() * innerHeight;
+			const col = ranCol(150);
+			const p = new Point(x,y,col);
+			points.push(p);
+		}
+	}
+
+	function drawPoints(){
+		const size = 5;
+		for(let i = 0; i < points.length; i++){
+			const p = points[i];
+			ctx.fillStyle = 'rgb(0,0,0)';
+			drawRect(p.pos.x,p.pos.y,size,size);
+		}
+	}
+
+	function drawCircle(x,y,r){
+		//Draw circle
+		ctx.beginPath();
+		ctx.arc(x, y, r, 0, Math.PI * 2, false);
+		ctx.fill();
+	}
+
+	function drawRect(x,y,w,h){
+		ctx.beginPath();
+		ctx.rect(x, y, w, h);
+		ctx.fill();
+	}
+
+	function ranColBW(x = 0){
+		const s = Math.floor(Math.random() * (255 - x) + x);
+		return `rgb(${s},${s},${s})`;
+	}
+
+	function ranCol(x = 0){
+		const r = Math.floor(Math.random() * (255 - x) + x);
+		const g = Math.floor(Math.random() * (255 - x) + x);
+		const b = Math.floor(Math.random() * (255 - x) + x);
+		return `rgb(${r},${g},${b})`;
+	}
+
+	function getClosestPoint(origin){
+		let closestDist = Number.MAX_VALUE;
+		console.log(closestDist);
+		let closestPoint = null;
+		for(let i = 0; i < points.length; i++){
+			const dist = Vector.sub(origin, points[i].pos);
+			if(dist.length < closestDist){
+				closestDist = dist.length;
+				closestPoint = points[i];
+			}
+		}
+		return closestPoint;
+	}
+
+	function generateVoronoi(compression = 10){
+		const xRes = innerWidth / compression;
+		const yRes = innerHeight / compression;
+		const xStep = innerWidth / xRes;
+		const yStep = innerHeight / yRes;
+
+		for(let y = 0; y < yRes; y++){
+			for(let x = 0; x < xRes; x++){
+				const pos = new Vector(x * xStep, y * yStep);
+				const point = getClosestPoint(pos);
+				ctx.fillStyle = point.col;
+
+				drawRect(pos.x, pos.y, xStep, yStep);
+			}
+		}
+	}
+
+	function start(){
+		generatePoints(voronoiSeeds);
+		generateVoronoi(voronoiCompression);
+		drawPoints();
+	}
+
+	start()
+	</script>
+  </body>
+</html>

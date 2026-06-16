@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>biased drift</title>
+    <style>
+      html, body { margin: 0; padding: 0; overflow: hidden; }
+    </style>
+  </head>
+  <body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.3/p5.min.js"></script>
+    <script>
+      new p5(function (p) {
+        class Walker {
+          constructor() {
+            this.x = 0
+            this.y = 0
+          }
+
+          step() {
+            let prob = 0.6
+            let r = p.random(1)
+            let xstep = 0
+            let ystep = 0
+
+            if (r < prob) {
+              xstep = p.random(0, 1)
+              ystep = p.random(0, 1)
+            } else {
+              xstep = p.random(-1, 1)
+              ystep = p.random(-1, 1)
+            }
+
+            this.x += xstep
+            this.y += ystep
+          }
+
+          render() {
+            p.stroke(0)
+            p.circle(this.x, this.y, 5)
+          }
+        }
+
+        const walker = new Walker()
+
+        p.setup = () => {
+          p.createCanvas(p.windowWidth, p.windowHeight)
+          p.background(255)
+        }
+
+        p.draw = () => {
+          p.background(255)
+          walker.step()
+          walker.render()
+        }
+      })
+    </script>
+  </body>
+</html>

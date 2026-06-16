@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>chain follow</title>
+  <style>body { margin: 0; overflow: hidden; }</style>
+</head>
+<body>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.3/p5.min.js"></script>
+  <script>
+    // https://x.com/TheRujiK
+    new p5(function(p) {
+      let salamander
+
+      p.setup = () => {
+        p.createCanvas(p.windowWidth, p.windowHeight)
+        salamander = new Salamander()
+      }
+
+      p.draw = () => {
+        p.background(200)
+        const target = p.createVector(p.mouseX, p.mouseY)
+        salamander.seek(target)
+        salamander.update()
+        salamander.render()
+      }
+
+      class BodySegment {
+        constructor(x, y) {
+          this.position = p.createVector(x, y)
+          this.radius = p.random(0.5, 10)
+        }
+
+        render() {
+          p.noFill()
+          p.stroke(0)
+          p.circle(this.position.x, this.position.y, this.radius)
+        }
+      }
+
+      class Salamander {
+        constructor() {
+          this.position = p.createVector(p.width * 0.5, p.height * 0.5)
+          this.velocity = p.createVector(p.random(-1, 1), p.random(-1, 1))
+          this.acceleration = p.createVector(0, 0)
+          this.maxSpeed = 5
+          this.maxForce = 0.1
+          this.joints = []
+
+          for (let i = 0; i < 15; i++) {
+            this.joints.push(new BodySegment(this.position.x, this.position.y))
+          }
+        }
+
+        screenWrap() {
+          if (this.position.x > p.width) this.position.x = 0
+          else if (this.position.x < 0) this.position.x = p.width
+          if (this.position.y > p.height) this.position.y = 0
+          else if (this.position.y < 0) this.position.y = p.height
+        }
+
+        seek(target) {
+          const desired = p5.Vector.sub(target, this.position)
+          const d = desired.mag()
+          if (d < 100) {
+            const m = p.map(d, 0, 100, 0, this.maxSpeed)
+            desired.setMag(m)
+          } else {
+            desired.setMag(this.maxSpeed)
+          }
+          const steer = p5.Vector.sub(desired, this.velocity)
+          steer.limit(this.maxForce)
+          this.applyForce(steer)
+        }
+
+        applyForce(force) {
+          this.acceleration.add(force)
+        }
+
+        update() {
+          this.velocity.add(this.acceleration)
+          this.position.add(this.velocity)
+          this.acceleration.mult(0)
+          for (let i = 0; i < this.joints.length - 1; i++) {
+            this.joints[i].position.set(this.joints[i + 1].position)
+          }
+          this.joints[this.joints.length - 1].position.set(this.position)
+        }
+
+        render() {
+          for (let i = 0; i < this.joints.length; i++) {
+            this.joints[i].render()
+          }
+        }
+      }
+    })
+  </script>
+</body>
+</html>

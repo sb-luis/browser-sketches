@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>montecarlo walk</title>
+    <style>
+      html, body { margin: 0; padding: 0; overflow: hidden; }
+    </style>
+  </head>
+  <body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.3/p5.min.js"></script>
+    <script>
+      new p5(function (p) {
+        class Walker {
+          constructor() {
+            this.x = 0
+            this.y = 0
+          }
+
+          acceptReject() {
+            while (true) {
+              let r1 = p.random(1)
+              let probability = r1
+              let r2 = p.random(1)
+              if (r2 < probability) {
+                return r1
+              }
+            }
+          }
+
+          step() {
+            let step = this.acceptReject()
+            this.x += step
+            this.y += step
+          }
+
+          render() {
+            p.stroke(0)
+            p.circle(this.x, this.y, 5)
+          }
+        }
+
+        const walker = new Walker()
+
+        p.setup = () => {
+          p.createCanvas(p.windowWidth, p.windowHeight)
+          p.background(255)
+        }
+
+        p.draw = () => {
+          p.background(255)
+          walker.step()
+          walker.render()
+        }
+      })
+    </script>
+  </body>
+</html>
