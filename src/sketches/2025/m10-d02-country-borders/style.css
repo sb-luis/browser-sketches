@@ -1,0 +1,181 @@
+:root {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  overflow: hidden;
+  background: #000;
+}
+
+.app-shell {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.globe-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.overlay > * {
+  pointer-events: auto;
+}
+
+.reset-button {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 1000;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+  font-size: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  transition: transform 200ms ease;
+}
+
+.reset-button:hover {
+  transform: scale(1.1);
+}
+
+.reset-button:active {
+  transform: scale(1);
+}
+
+.zoom-slider-wrap {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  right: 20px;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 4px 16px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(10px);
+}
+
+.zoom-label {
+  color: #fff;
+  font-size: 24px;
+  font-weight: 700;
+  user-select: none;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.zoom-slider {
+  width: 100%;
+  height: 8px;
+  appearance: none;
+  outline: none;
+  border-radius: 5px;
+  cursor: pointer;
+  background: linear-gradient(to right, #4a9eff, #1e3a8a);
+}
+
+.zoom-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: 9999px;
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.zoom-slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: 9999px;
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.loading-indicator {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  z-index: 1000;
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.loading-title {
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.loading-row {
+  display: flex;
+  gap: 8px;
+}
+
+.loading-level {
+  width: 40px;
+  color: #9ca3af;
+}
+
+.loading-state.loading {
+  color: #60a5fa;
+}
+
+.loading-state.ready {
+  color: #4ade80;
+}
+
+@media (max-width: 768px) {
+  .zoom-slider-wrap {
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    gap: 10px;
+  }
+
+  .reset-button {
+    top: 12px;
+    right: 12px;
+  }
+
+  .loading-indicator {
+    top: 12px;
+    left: 12px;
+  }
+}
