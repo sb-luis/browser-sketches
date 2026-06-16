@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>random pixels</title>
+    <style>
+      html, body { margin: 0; padding: 0; overflow: hidden; }
+    </style>
+  </head>
+  <body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.3/p5.min.js"></script>
+    <script>
+      new p5(function (p) {
+        p.setup = () => {
+          p.createCanvas(p.windowWidth, p.windowHeight)
+          p.pixelDensity(1)
+          p.loadPixels()
+          for (let x = 0; x < p.width; x++) {
+            for (let y = 0; y < p.height; y++) {
+              let index = (x + y * p.width) * 4
+              let bright = p.random(255)
+              p.pixels[index] = bright
+              p.pixels[index + 1] = bright
+              p.pixels[index + 2] = bright
+              p.pixels[index + 3] = 255
+            }
+          }
+          p.updatePixels()
+        }
+      })
+    </script>
+  </body>
+</html>

@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>self avoiding walk</title>
+    <style>
+      html, body { margin: 0; padding: 0; overflow: hidden; }
+    </style>
+  </head>
+  <body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.3/p5.min.js"></script>
+    <script>
+      new p5(function (p) {
+        let lastRun = 0
+        let walker
+
+        class Walker {
+          constructor(x, y) {
+            this.stepSize = 10
+            this.pos = p.createVector(x, y)
+            this.history = [this.pos]
+          }
+
+          step() {
+            let validSteps = []
+            const { x, y } = this.pos
+            const s = this.stepSize
+            if (x + s < p.width)  validSteps.push(p.createVector(x + s, y))
+            if (x - s > 0)        validSteps.push(p.createVector(x - s, y))
+            if (y + s < p.height) validSteps.push(p.createVector(x, y + s))
+            if (y - s > 0)        validSteps.push(p.createVector(x, y - s))
+
+            validSteps = validSteps.filter(step =>
+              !this.history.some(pt => pt.x === step.x && pt.y === step.y)
+            )
+
+            if (validSteps.length === 0) {
+              lastRun = this.history.length
+              restart()
+              return
+            }
+
+            this.pos = p.random(validSteps)
+            this.history.push(this.pos)
+          }
+
+          render() {
+            for (let i = this.history.length - 1; i > 0; i--) {
+              p.stroke(0, 0, 0, p.map(i, 0, this.history.length, 0, 255))
+              p.line(this.history[i].x, this.history[i].y, this.history[i-1].x, this.history[i-1].y)
+            }
+            p.fill(0); p.stroke(0)
+            p.circle(this.pos.x, this.pos.y, 4)
+            p.noFill()
+          }
+        }
+
+        function restart() {
+          walker = new Walker(p.width / 2, p.height / 2)
+          p.loop()
+        }
+
+        p.setup = () => {
+          p.createCanvas(p.windowWidth, p.windowHeight)
+          walker = new Walker(p.width / 2, p.height / 2)
+        }
+
+        p.draw = () => {
+          p.background(200)
+          walker.step()
+          walker.render()
+          p.fill(255); p.noStroke()
+          p.textSize(42)
+          p.text(`${lastRun} steps`, p.width / 2 - 90, 50)
+        }
+
+        p.keyPressed = e => { if (e.keyCode === 32) restart() }
+      })
+    </script>
+  </body>
+</html>

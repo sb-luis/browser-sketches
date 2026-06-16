@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>wave func 2d</title>
+    <style>
+      html, body { margin: 0; padding: 0; overflow: hidden; }
+    </style>
+  </head>
+  <body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.3/p5.min.js"></script>
+    <script>
+      new p5(async function (p) {
+        const tilesData = [
+          { edges: ['AAA','AAA','AAA','AAA'] },
+          { edges: ['BBB','BBB','BBB','BBB'] },
+          { edges: ['BBB','BCB','BBB','BBB'] },
+          { edges: ['BBB','BDB','BBB','BDB'] },
+          { edges: ['ABB','BCB','BBA','AAA'] },
+          { edges: ['ABB','BBB','BBB','BBA'] },
+          { edges: ['BBB','BCB','BBB','BCB'] },
+          { edges: ['BDB','BCB','BDB','BCB'] },
+          { edges: ['BDB','BBB','BDB','BBB'] },
+          { edges: ['BCB','BCB','BBB','BCB'] },
+          { edges: ['BCB','BCB','BCB','BCB'] },
+          { edges: ['BCB','BCB','BBB','BBB'] },
+          { edges: ['BBB','BCB','BBB','BCB'] }
+        ]
+        let tiles = []
+        const grid = []
+        const gridRes = 40
+        const tileSize = 16
+        let sketchIsReady = false, sketchIsDone = false
+        let collapseStep = 1
+        const collapseStepsPerFrame = 10
+
+        function loadImageAsync(path) {
+          return new Promise(resolve => p.loadImage(path, img => resolve(img)))
+        }
+
+        function rotateImageCW(image, rotations) {
+          const w = image.width, h = image.height
+          const g = p.createGraphics(w, h)
+          g.imageMode(p.CENTER); g.translate(w/2, h/2); g.rotate(p.HALF_PI * rotations)
+          g.image(image, 0, 0)
+          return g
+        }
+
+        function rotateTile(tile, rotations) {
+          const newEdges = tile.edges.map((_, i) => tile.edges[(i + tile.edges.length - rotations) % tile.edges.length])
+          return { image: rotateImageCW(tile.image, rotations), edges: newEdges }
+        }
+
+        function compareEdges(e1, e2) {
+          return e1 === e2.split('').reverse().join('')
+        }
+
+        function reduceNeighboursEntropy(cell) {
+          const cellTile = cell.options[0]
+          for (let i = 0; i < cell.neighbours.length; i++) {
+            const nIdx = cell.neighbours[i]
+            if (nIdx === -1) continue
+            const nb = grid[nIdx]
+            if (nb.options.length <= 1) continue
+            const old = nb.options.length
+            const opp = [2,3,0,1][i]
+            nb.options = nb.options.filter(o => compareEdges(cellTile.edges[i], o.edges[opp]))
+            if (nb.options.length < old && nb.options.length === 1) reduceNeighboursEntropy(nb)
+          }
+        }
+
+        function collapseCell(cell) {
+          if (cell.options.length === 0) return
+          cell.options = [cell.options[Math.floor(p.random(0, cell.options.length))]]
+          reduceNeighboursEntropy(cell)
+        }
+
+        function waveFuncCollapse(cells) {
+          cells.sort((a,b) => a.options.length - b.options.length)
+          cells = cells.filter(c => c.options.length <= cells[0].options.length)
+          collapseCell(cells[Math.floor(p.random(0, cells.length))])
+        }
+
+        function renderGrid() {
+          p.background(100)
+          for (let y = 0; y < gridRes; y++) {
+            for (let x = 0; x < gridRes; x++) {
+              const cell = grid[y + x * gridRes]
+              if (cell.options.length === 1) {
+                p.image(cell.options[0].image, x * tileSize, y * tileSize)
+              } else {
+                p.fill(40); p.rect(x * tileSize, y * tileSize, tileSize, tileSize)
+              }
+            }
+          }
+        }
+
+        function startOver() {
+          collapseStep = 1; sketchIsDone = false
+          for (let i = 0; i < grid.length; i++) grid[i].options = [...tiles]
+        }
+
+        p.setup = async () => {
+          p.createCanvas(p.windowWidth, p.windowHeight)
+          const path = '../assets/coding-train/circuit/'
+          for (let i = 0; i < tilesData.length; i++) {
+            const img = await loadImageAsync(`${path}${i}.png`)
+            img.resize(tileSize, tileSize)
+            tiles.push({ image: img, edges: tilesData[i].edges })
+          }
+          // generate rotations for all tiles except tile 0
+          const baseTiles = [...tiles]
+          for (let i = baseTiles.length - 1; i > 0; i--) {
+            for (let j = 1; j < 4; j++) tiles.push(rotateTile(baseTiles[i], j))
+          }
+
+          for (let y = 0; y < gridRes; y++) {
+            for (let x = 0; x < gridRes; x++) {
+              const N = -1, idx = y + x * gridRes
+              grid[idx] = {
+                options: [...tiles],
+                neighbours: [
+                  y === 0         ? N : y-1 + x*gridRes,
+                  x === gridRes-1 ? N : y + (x+1)*gridRes,
+                  y === gridRes-1 ? N : y+1 + x*gridRes,
+                  x === 0         ? N : y + (x-1)*gridRes
+                ]
+              }
+            }
+          }
+          sketchIsReady = true
+        }
+
+        p.draw = () => {
+          if (!sketchIsReady || sketchIsDone) return
+          for (let j = 0; j < collapseStepsPerFrame; j++) {
+            const remaining = grid.filter(c => c.options.length > 1)
+            if (!remaining.length) { sketchIsDone = true; renderGrid(); return }
+            waveFuncCollapse(remaining)
+            collapseStep++
+          }
+          renderGrid()
+        }
+
+        document.addEventListener('keyup', e => {
+          if (e.code === 'Space') startOver()
+        })
+      })
+    </script>
+  </body>
+</html>

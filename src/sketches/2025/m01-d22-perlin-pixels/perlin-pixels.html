@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>perlin pixels</title>
+    <style>
+      html, body { margin: 0; padding: 0; overflow: hidden; }
+    </style>
+  </head>
+  <body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.3/p5.min.js"></script>
+    <script>
+      new p5(function (p) {
+        let t = 0
+        let txOffset = 0
+        let tyOffset = 0
+
+        p.setup = () => {
+          p.createCanvas(p.windowWidth, p.windowHeight)
+          p.pixelDensity(1)
+        }
+
+        p.draw = () => {
+          p.loadPixels()
+          let xOffset = 0.0
+          for (let x = 0; x < p.width; x++) {
+            let yOffset = 0.0
+            for (let y = 0; y < p.height; y++) {
+              let index = (x + y * p.width) * 4
+              let bright = p.map(p.noise(xOffset + txOffset, yOffset + tyOffset), 0, 1, 0, 255)
+              p.pixels[index] = bright
+              p.pixels[index + 1] = bright
+              p.pixels[index + 2] = bright
+              p.pixels[index + 3] = 255
+              yOffset += 0.01
+            }
+            xOffset += 0.01
+          }
+          p.updatePixels()
+
+          t += 0.01
+          txOffset = p.map(p.noise(t + 10000), 0, 1, 0, 10)
+          tyOffset = p.map(p.noise(t), 0, 1, 0, 10)
+        }
+      })
+    </script>
+  </body>
+</html>

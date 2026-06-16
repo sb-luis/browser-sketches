@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>random walker</title>
+    <style>
+      html, body { margin: 0; padding: 0; overflow: hidden; }
+    </style>
+  </head>
+  <body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.3/p5.min.js"></script>
+    <script>
+      new p5(function (p) {
+        class Walker {
+          constructor() {
+            this.x = p.windowWidth / 2
+            this.y = p.windowHeight / 2
+          }
+
+          step() {
+            let choice = p.floor(p.random(4))
+            if (choice === 0) this.x++
+            else if (choice === 1) this.x--
+            else if (choice === 2) this.y++
+            else this.y--
+          }
+
+          render() {
+            p.stroke(0)
+            p.point(this.x, this.y)
+          }
+        }
+
+        const walker = new Walker()
+
+        p.setup = () => {
+          p.createCanvas(p.windowWidth, p.windowHeight)
+          p.background(255)
+        }
+
+        p.draw = () => {
+          walker.step()
+          walker.render()
+        }
+      })
+    </script>
+  </body>
+</html>

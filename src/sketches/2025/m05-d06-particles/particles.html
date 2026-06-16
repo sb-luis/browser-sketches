@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>particles</title>
+    <style>
+      html, body { margin: 0; padding: 0; overflow: hidden; }
+    </style>
+  </head>
+  <body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.3/p5.min.js"></script>
+    <script>
+      new p5(function (p) {
+        let particles = []
+        const gravity = p.createVector(0, 0.1)
+
+        class Particle {
+          constructor(x, y) {
+            this.position = p.createVector(x, y)
+            this.velocity = p.createVector(p.random(-1, 1), p.random(-2, 0))
+            this.acceleration = p.createVector()
+            this.lifespan = 255
+          }
+          applyForce(force) { this.acceleration.add(force) }
+          update() {
+            this.velocity.add(this.acceleration)
+            this.position.add(this.velocity)
+            this.acceleration.mult(0)
+            this.lifespan -= 2
+          }
+          isDead() { return this.lifespan < 0 }
+          render() {
+            p.stroke(0, this.lifespan)
+            p.fill(255, this.lifespan)
+            p.circle(this.position.x, this.position.y, 8)
+          }
+        }
+
+        p.setup = () => {
+          p.createCanvas(p.windowWidth, p.windowHeight)
+          for (let i = 0; i < 100; i++) particles.push(new Particle(p.width / 2, p.height / 2))
+        }
+
+        p.draw = () => {
+          p.background(200)
+          particles.push(new Particle(p.width / 2, 20))
+          for (let i = particles.length - 1; i >= 0; i--) {
+            const particle = particles[i]
+            particle.update()
+            particle.render()
+            particle.applyForce(gravity)
+            if (particle.isDead()) particles.splice(i, 1)
+          }
+        }
+      })
+    </script>
+  </body>
+</html>

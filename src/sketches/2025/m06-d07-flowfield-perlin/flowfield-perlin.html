@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>flowfield-perlin</title>
+  <style>body { margin: 0; overflow: hidden; }</style>
+</head>
+<body>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.3/p5.min.js"></script>
+  <script>
+    new p5(function(p) {
+      let field
+      let vehicle
+      let debug = true
+
+      p.setup = () => {
+        p.createCanvas(p.windowWidth, p.windowHeight)
+        vehicle = new Vehicle(p.width / 2, p.height / 2)
+        field = new FlowField(p.width, p.height)
+      }
+
+      p.draw = () => {
+        p.background(200)
+        field.update()
+        field.render()
+      }
+
+      class FlowField {
+        constructor(w, h) {
+          this.cols = 40
+          this.rows = 60
+          this.ySpacing = h / this.cols
+          this.xSpacing = w / this.rows
+          this.flowT = 0
+          this.field = new Array(this.cols)
+          for (let i = 0; i < this.cols; i++) {
+            this.field[i] = new Array(this.rows)
+          }
+          this.update()
+        }
+
+        update() {
+          const flowInc = 0.05
+          let yOff = 0
+          for (let y = 0; y < this.cols; y++) {
+            let xOff = 444
+            for (let x = 0; x < this.rows; x++) {
+              let angle = p.map(p.noise(xOff + this.flowT, yOff + this.flowT), 0, 1, 0, p.TWO_PI)
+              this.field[y][x] = p5.Vector.fromAngle(angle)
+              xOff += flowInc
+            }
+            yOff += flowInc
+          }
+          this.flowT += 0.01
+        }
+
+        render() {
+          for (let y = 0; y < this.cols; y++) {
+            for (let x = 0; x < this.rows; x++) {
+              const origin = p.createVector(
+                x * this.xSpacing + this.xSpacing * 0.5,
+                y * this.ySpacing + this.ySpacing * 0.5,
+              )
+              p.fill(0)
+              const vec = this.field[y][x].copy().mult(8)
+              p.line(origin.x, origin.y, origin.x + vec.x, origin.y + vec.y)
+            }
+          }
+        }
+      }
+
+      class Vehicle {
+        constructor(x, y) {
+          this.position = p.createVector(x, y)
+          this.velocity = p.createVector()
+          this.acceleration = p.createVector()
+          this.maxSpeed = 8
+          this.maxForce = 0.5
+          this.mass = 1
+          this.r = 8
+          this.wanderTheta = 0.0
+        }
+
+        applyForce(force) {
+          const newForce = p5.Vector.div(force, this.mass)
+          this.acceleration.add(newForce)
+        }
+
+        update() {
+          this.velocity.add(this.acceleration)
+          this.position.add(this.velocity)
+          this.acceleration.mult(0)
+        }
+
+        render() {
+          let angle = this.velocity.heading()
+          p.fill(127)
+          p.push()
+          p.translate(this.position.x, this.position.y)
+          p.rotate(angle)
+          p.beginShape()
+          p.vertex(this.r * 1.25, 0)
+          p.vertex(-this.r * 1.25, -this.r)
+          p.vertex(-this.r * 1.25, this.r)
+          p.endShape(p.CLOSE)
+          p.pop()
+        }
+      }
+    })
+  </script>
+</body>
+</html>

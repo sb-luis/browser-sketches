@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>bin-lattice-sub</title>
+  <style>body { margin: 0; overflow: hidden; }</style>
+</head>
+<body>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.3/p5.min.js"></script>
+  <script>
+    new p5(function(p) {
+      let flock
+
+      let cells = 15
+      let resolution
+      let grid
+      let cols
+      let rows
+
+      function make2DArray(cols, rows) {
+        let arr = new Array(cols)
+        for (let i = 0; i < arr.length; i++) {
+          arr[i] = new Array(rows)
+        }
+        return arr
+      }
+
+      p.setup = () => {
+        p.createCanvas(p.windowWidth, p.windowHeight)
+
+        resolution = p.width / cells
+        cols = p.floor(p.width / resolution)
+        rows = p.floor(p.height / resolution)
+        grid = make2DArray(cols, rows)
+        flock = new Flock()
+        for (let i = 0; i < 100; i++) {
+          let boid = new Boid(p.random(p.width), p.random(p.height))
+          flock.addBoid(boid)
+        }
+      }
+
+      p.draw = () => {
+        p.background(255)
+
+        for (let i = 0; i < cols; i++) {
+          for (let j = 0; j < rows; j++) {
+            grid[i][j] = []
+          }
+        }
+
+        for (let boid of flock.boids) {
+          let col = p.floor(boid.position.x / resolution)
+          let row = p.floor(boid.position.y / resolution)
+          col = p.constrain(col, 0, cols - 1)
+          row = p.constrain(row, 0, rows - 1)
+          grid[col][row].push(boid)
+        }
+
+        p.stroke(200)
+        p.strokeWeight(1)
+        for (let i = 0; i <= cols; i++) {
+          let x = i * resolution
+          p.line(x, 0, x, p.height)
+        }
+        for (let j = 0; j <= rows; j++) {
+          let y = j * resolution
+          p.line(0, y, p.width, y)
+        }
+
+        let mouseCol = p.floor(p.mouseX / resolution)
+        let mouseRow = p.floor(p.mouseY / resolution)
+        p.noStroke()
+        p.fill(255, 50, 50, 100)
+        for (let i = -1; i <= 1; i++) {
+          for (let j = -1; j <= 1; j++) {
+            let col = mouseCol + i
+            let row = mouseRow + j
+            if (col >= 0 && col < cols && row >= 0 && row < rows) {
+              p.rect(col * resolution, row * resolution, resolution, resolution)
+            }
+          }
+        }
+
+        flock.run()
+      }
+
+      p.mouseDragged = () => {
+        flock.addBoid(new Boid(p.mouseX, p.mouseY))
+      }
+
+      class Flock {
+        constructor() {
+          this.boids = []
+        }
+
+        run() {
+          for (let boid of this.boids) {
+            boid.run(this.boids)
+          }
+        }
+
+        addBoid(boid) {
+          this.boids.push(boid)
+        }
+      }
+
+      class Boid {
+        constructor(x, y, maxSpeed = 5, maxForce = 0.05) {
+          this.position = p.createVector(x, y)
+          this.velocity = p.createVector(p.random(-1, 1), p.random(-1, 1))
+          this.acceleration = p.createVector(0, 0)
+          this.maxSpeed = maxSpeed
+          this.maxForce = maxForce
+          this.mass = 1
+          this.r = 3
+          this.wanderTheta = 0.0
+        }
+
+        run() {
+          let col = Math.floor(this.position.x / resolution)
+          let row = Math.floor(this.position.y / resolution)
+          let neighbors = []
+
+          for (let i = -1; i <= 1; i++) {
+            for (let j = -1; j <= 1; j++) {
+              let newCol = col + i
+              let newRow = row + j
+              if (newCol >= 0 && newCol < cols && newRow >= 0 && newRow < rows) {
+                neighbors = neighbors.concat(grid[newCol][newRow])
+              }
+            }
+          }
+
+          this.flock(neighbors)
+          this.wrapAoundEdges()
+          this.update()
+          this.render()
+        }
+
+        flock(boids) {
+          let separation = this.separate(boids)
+          let cohesion = this.cohere(boids)
+          let alignment = this.align(boids)
+
+          separation.mult(1.75)
+          cohesion.mult(1)
+          alignment.mult(0.85)
+
+          this.applyForce(separation)
+          this.applyForce(cohesion)
+          this.applyForce(alignment)
+        }
+
+        cohere(boids) {
+          let neighborDistance = 50
+          let sum = p.createVector(0, 0)
+          let count = 0
+          for (let other of boids) {
+            let d = p5.Vector.dist(this.position, other.position)
+            if (this !== other && d < neighborDistance) {
+              sum.add(other.position)
+              count++
+            }
+          }
+          if (count > 0) {
+            sum.div(count)
+            return this.seek(sum)
+          } else {
+            return sum
+          }
+        }
+
+        align(boids) {
+          let neighborDistance = 50
+          let sum = p.createVector(0, 0)
+          let count = 0
+          for (let other of boids) {
+            let d = p5.Vector.dist(this.position, other.position)
+            if (this !== other && d < neighborDistance) {
+              sum.add(other.velocity)
+              count++
+            }
+          }
+          if (count > 0) {
+            sum.div(count)
+            sum.setMag(this.maxSpeed)
+            let steer = p5.Vector.sub(sum, this.velocity)
+            steer.limit(this.maxForce)
+            return steer
+          } else {
+            return sum
+          }
+        }
+
+        separate(boids) {
+          let desiredSeparation = this.r * 2.5
+          let sum = p.createVector()
+          let count = 0
+          for (let other of boids) {
+            let d = p5.Vector.dist(this.position, other.position)
+            if (this !== other && d < desiredSeparation) {
+              let diff = p5.Vector.sub(this.position, other.position)
+              diff.setMag(1 / d)
+              sum.add(diff)
+              count++
+            }
+          }
+          if (count > 0) {
+            sum.div(count)
+            sum.setMag(this.maxSpeed)
+            let steer = p5.Vector.sub(sum, this.velocity)
+            steer.limit(this.maxForce)
+            return steer
+          } else {
+            return sum
+          }
+        }
+
+        wrapAoundEdges() {
+          if (this.position.x > p.width) this.position.x = 0
+          else if (this.position.x < 0) this.position.x = p.width
+          if (this.position.y > p.height) this.position.y = 0
+          else if (this.position.y < 0) this.position.y = p.height
+        }
+
+        seek(target) {
+          const desired = p5.Vector.sub(target, this.position)
+          const d = desired.mag()
+          if (d < 100) {
+            const m = p.map(d, 0, 100, 0, this.maxSpeed)
+            desired.setMag(m)
+          } else {
+            desired.setMag(this.maxSpeed)
+          }
+          const steer = p5.Vector.sub(desired, this.velocity)
+          steer.limit(this.maxForce)
+          return steer
+        }
+
+        applyForce(force) {
+          const newForce = p5.Vector.div(force, this.mass)
+          this.acceleration.add(newForce)
+        }
+
+        update() {
+          this.velocity.add(this.acceleration)
+          this.position.add(this.velocity)
+          this.acceleration.mult(0)
+        }
+
+        render() {
+          let angle = this.velocity.heading()
+          p.fill(127)
+          p.stroke(0)
+          p.push()
+          p.translate(this.position.x, this.position.y)
+          p.rotate(angle)
+          p.beginShape()
+          p.vertex(this.r * 1, 0)
+          p.vertex(-this.r * 1, -this.r)
+          p.vertex(-this.r * 1, this.r)
+          p.endShape(p.CLOSE)
+          p.pop()
+        }
+      }
+    })
+  </script>
+</body>
+</html>

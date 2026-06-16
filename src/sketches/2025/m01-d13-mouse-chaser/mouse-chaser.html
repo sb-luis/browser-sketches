@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>mouse chaser</title>
+    <style>
+      html, body { margin: 0; padding: 0; overflow: hidden; }
+    </style>
+  </head>
+  <body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.3/p5.min.js"></script>
+    <script>
+      new p5(function (p) {
+        class Walker {
+          constructor() {
+            this.x = p.windowWidth / 2
+            this.y = p.windowHeight / 2
+          }
+
+          step() {
+            const speed = 10
+            let prob = 0.2
+            let r = p.random(1)
+
+            let xDir = Math.sign(p.mouseX - this.x)
+            let yDir = Math.sign(p.mouseY - this.y)
+            let xstep = 0
+            let ystep = 0
+
+            if (r < prob) {
+              xstep = xDir * speed
+              ystep = yDir * speed
+            } else {
+              xstep = p.random(-1, 1) * (speed / 2)
+              ystep = p.random(-1, 1) * (speed / 2)
+            }
+
+            this.x += xstep
+            this.y += ystep
+          }
+
+          render() {
+            p.stroke(0)
+            p.point(this.x, this.y)
+          }
+        }
+
+        const walker = new Walker()
+
+        p.setup = () => {
+          p.createCanvas(p.windowWidth, p.windowHeight)
+          p.background(255)
+        }
+
+        p.draw = () => {
+          walker.step()
+          walker.render()
+        }
+      })
+    </script>
+  </body>
+</html>

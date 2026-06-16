@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>bell curve</title>
+    <style>
+      html, body { margin: 0; padding: 0; overflow: hidden; }
+    </style>
+  </head>
+  <body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.3/p5.min.js"></script>
+    <script>
+      new p5(function (p) {
+        p.setup = () => {
+          p.createCanvas(p.windowWidth, p.windowHeight)
+          p.background(255)
+        }
+
+        p.draw = () => {
+          let x = 60 * p.randomGaussian() + 320
+          p.noStroke()
+          p.fill(0, 10)
+          p.circle(x, 120, 16)
+        }
+      })
+    </script>
+  </body>
+</html>

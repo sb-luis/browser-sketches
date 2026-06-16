@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>bouncing ball 3d</title>
+    <style>
+      html, body { margin: 0; padding: 0; overflow: hidden; }
+    </style>
+  </head>
+  <body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.3/p5.min.js"></script>
+    <script>
+      new p5(function (p) {
+        let ball
+        let halfDiagonal = 50
+        let highlightedFace = ''
+
+        class Ball {
+          constructor() {
+            this.position = p.createVector(0, 0, 0)
+            this.velocity = p.createVector(1.59, 1.38, 1.56)
+          }
+
+          step() {
+            this.position.add(this.velocity)
+            if (this.position.x > halfDiagonal || this.position.x < -halfDiagonal) {
+              this.velocity.x *= -1
+              highlightedFace = this.position.x > 0 ? 'right' : 'left'
+            }
+            if (this.position.y > halfDiagonal || this.position.y < -halfDiagonal) {
+              this.velocity.y *= -1
+              highlightedFace = this.position.y > 0 ? 'top' : 'bottom'
+            }
+            if (this.position.z > halfDiagonal || this.position.z < -halfDiagonal) {
+              this.velocity.z *= -1
+              highlightedFace = this.position.z > 0 ? 'front' : 'back'
+            }
+          }
+
+          render() {
+            p.translate(this.position.x, this.position.y, this.position.z)
+            p.stroke(0)
+            p.sphere(this.position.size)
+            p.translate(-this.position.x, -this.position.y, -this.position.z)
+          }
+        }
+
+        p.setup = () => {
+          p.createCanvas(p.windowWidth, p.windowHeight, p.WEBGL)
+          ball = new Ball()
+        }
+
+        p.draw = () => {
+          p.stroke(255)
+          p.background(200)
+          p.orbitControl()
+          p.noFill()
+          p.box(halfDiagonal * 2)
+
+          ball.step()
+          ball.render()
+
+          p.angleMode(p.DEGREES)
+          const opacity = 100
+          switch (highlightedFace) {
+            case 'top':
+              p.translate(0, halfDiagonal, 0); p.rotateX(90)
+              p.fill(255, 255, 255, opacity); p.plane(halfDiagonal * 2, halfDiagonal * 2)
+              p.rotateX(-90); p.translate(0, -halfDiagonal, 0); break
+            case 'bottom':
+              p.translate(0, -halfDiagonal, 0); p.rotateX(90)
+              p.fill(255, 255, 255, opacity); p.plane(halfDiagonal * 2, halfDiagonal * 2)
+              p.rotateX(-90); p.translate(0, halfDiagonal, 0); break
+            case 'left':
+              p.translate(-halfDiagonal, 0, 0); p.rotateY(90)
+              p.fill(255, 255, 255, opacity); p.plane(halfDiagonal * 2, halfDiagonal * 2)
+              p.rotateY(-90); p.translate(halfDiagonal, 0, 0); break
+            case 'right':
+              p.translate(halfDiagonal, 0, 0); p.rotateY(90)
+              p.fill(255, 255, 255, opacity); p.plane(halfDiagonal * 2, halfDiagonal * 2)
+              p.rotateY(-90); p.translate(-halfDiagonal, 0, 0); break
+            case 'front':
+              p.translate(0, 0, halfDiagonal)
+              p.fill(255, 255, 255, opacity); p.plane(halfDiagonal * 2, halfDiagonal * 2)
+              p.translate(0, 0, -halfDiagonal); break
+            case 'back':
+              p.translate(0, 0, -halfDiagonal)
+              p.fill(255, 255, 255, opacity); p.plane(halfDiagonal * 2, halfDiagonal * 2)
+              p.translate(0, 0, halfDiagonal); break
+          }
+        }
+      })
+    </script>
+  </body>
+</html>

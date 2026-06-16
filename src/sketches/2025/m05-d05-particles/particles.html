@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>particles</title>
+    <style>
+      html, body { margin: 0; padding: 0; overflow: hidden; }
+    </style>
+  </head>
+  <body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.3/p5.min.js"></script>
+    <script>
+      new p5(function (p) {
+        let particle
+
+        class Particle {
+          constructor(x, y) {
+            this.position = p.createVector(x, y)
+            this.velocity = p.createVector(p.random(-1, 1), p.random(-2, 0))
+            this.acceleration = p.createVector()
+            this.lifespan = 255
+          }
+          applyForce(force) { this.acceleration.add(force) }
+          update() {
+            this.velocity.add(this.acceleration)
+            this.position.add(this.velocity)
+            this.acceleration.mult(0)
+            this.lifespan--
+          }
+          isDead() { return this.lifespan < 0 }
+          render() {
+            p.stroke(this.lifespan)
+            p.fill(175, this.lifespan)
+            p.circle(this.position.x, this.position.y, 8)
+          }
+        }
+
+        p.setup = () => {
+          p.createCanvas(p.windowWidth, p.windowHeight)
+          particle = new Particle(p.width / 2, 50)
+        }
+
+        p.draw = () => {
+          p.background(200)
+          particle.applyForce(p.createVector(0, 0.1))
+          particle.update()
+          particle.render()
+          if (particle.isDead()) particle = new Particle(p.width / 2, 50)
+        }
+      })
+    </script>
+  </body>
+</html>

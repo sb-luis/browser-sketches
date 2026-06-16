@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>board-table-3</title>
+  <style>body { margin: 0; overflow: hidden; }</style>
+</head>
+<body>
+  <script type="module">
+    import * as THREE from 'three'
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+
+    class Grid {
+      constructor(size, divisions) {
+        this.size = size
+        this.divisions = divisions
+      }
+
+      add(scene) {
+        const contourMat = new THREE.LineDashedMaterial({
+          color: 0xffffff,
+          scale: 1,
+          dashSize: 1,
+          gapSize: 0.5
+        })
+        const contour = []
+        contour.push(new THREE.Vector3(-this.size / 2, 0, -this.size / 2))
+        contour.push(new THREE.Vector3(this.size / 2, 0, -this.size / 2))
+        contour.push(new THREE.Vector3(this.size / 2, 0, this.size / 2))
+        contour.push(new THREE.Vector3(-this.size / 2, 0, this.size / 2))
+        contour.push(new THREE.Vector3(-this.size / 2, 0, -this.size / 2))
+        const contourGeo = new THREE.BufferGeometry().setFromPoints(contour)
+        this.line = new THREE.Line(contourGeo, contourMat)
+        this.line.computeLineDistances()
+        scene.add(this.line)
+
+        const divisionsMat = new THREE.LineBasicMaterial({ color: 0xbbbbbb })
+        const cellSize = this.size / this.divisions
+        for (let i = 1; i < this.divisions; i++) {
+          const points = []
+          points.push(new THREE.Vector3(-this.size / 2, 0, -this.size / 2 + i * cellSize))
+          points.push(new THREE.Vector3(this.size / 2, 0, -this.size / 2 + i * cellSize))
+          scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), divisionsMat))
+          for (let j = 1; j < this.divisions; j++) {
+            const points = []
+            points.push(new THREE.Vector3(-this.size / 2 + j * cellSize, 0, -this.size / 2))
+            points.push(new THREE.Vector3(-this.size / 2 + j * cellSize, 0, this.size / 2))
+            scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), divisionsMat))
+          }
+        }
+      }
+    }
+
+    const renderer = new THREE.WebGLRenderer()
+    renderer.setSize(window.innerWidth, window.innerHeight)
+    renderer.setClearColor(0xaaaaaa)
+    document.body.appendChild(renderer.domElement)
+
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 500)
+    const orbitControls = new OrbitControls(camera, renderer.domElement)
+    orbitControls.enableZoom = false
+    orbitControls.enablePan = false
+    orbitControls.enableDamping = true
+    orbitControls.dampingFactor = 0.05
+    camera.position.set(15, 10, 15)
+    camera.lookAt(0, 0, 0)
+    orbitControls.update()
+    orbitControls.minPolarAngle = Math.PI / 4
+    orbitControls.maxPolarAngle = Math.PI / 4
+
+    const scene = new THREE.Scene()
+    const grid = new Grid(10, 8)
+    grid.add(scene)
+
+    const cellSize = 10 / 8
+    const gridSize = 8 * cellSize
+    const geometry = new THREE.BoxGeometry(cellSize, cellSize, cellSize)
+    const material = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.2 })
+    const cube = new THREE.Mesh(geometry, material)
+    scene.add(cube)
+
+    const raycaster = new THREE.Raycaster()
+    const mouse = new THREE.Vector2()
+    const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)
+
+    window.addEventListener('mousemove', (event) => {
+      mouse.x = (event.clientX / window.innerWidth) * 2 - 1
+      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1
+      raycaster.setFromCamera(mouse, camera)
+      const intersects = raycaster.ray.intersectPlane(plane, new THREE.Vector3())
+      if (intersects) {
+        let x = Math.floor(intersects.x / cellSize) * cellSize + cellSize / 2
+        let z = Math.floor(intersects.z / cellSize) * cellSize + cellSize / 2
+        const y = cellSize / 2
+        x = Math.max(-gridSize / 2 + cellSize / 2, Math.min(x, gridSize / 2 - cellSize / 2))
+        z = Math.max(-gridSize / 2 + cellSize / 2, Math.min(z, gridSize / 2 - cellSize / 2))
+        cube.position.set(x, y, z)
+      }
+    })
+
+    window.addEventListener('resize', () => {
+      const width = window.innerWidth
+      const height = window.innerHeight
+      renderer.setSize(width, height)
+      camera.aspect = width / height
+      camera.updateProjectionMatrix()
+    })
+
+    renderer.setAnimationLoop(() => {
+      renderer.render(scene, camera)
+      orbitControls.update()
+    })
+  </script>
+</body>
+</html>

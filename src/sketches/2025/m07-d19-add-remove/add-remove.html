@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>add-remove</title>
+  <style>body { margin: 0; overflow: hidden; }</style>
+</head>
+<body>
+  <script type="module">
+    import * as THREE from 'three'
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+
+    class Grid {
+      constructor(size, divisions) {
+        this.size = size
+        this.divisions = divisions
+        this.cells = []
+        this.cellSize = size / divisions
+        this.cellMaterials = {
+          active: new THREE.MeshToonMaterial({ color: 0xffffff }),
+          inactive: new THREE.MeshToonMaterial({ color: 0xbbbbbb })
+        }
+        this.planeGeometry = new THREE.PlaneGeometry(this.cellSize * 0.05, this.cellSize * 0.05)
+        this.prevActiveCell = null
+      }
+
+      activateCell(cell) {
+        if (this.prevActiveCell === cell) return
+        for (const c of this.cells) {
+          c.data.active = false
+          c.data.plane.scale.set(1, 1, 1)
+          if (c.data.box && c.data.box.material !== this.cellMaterials.inactive) {
+            c.data.box.material = this.cellMaterials.inactive
+          }
+        }
+        cell.data.active = true
+        if (cell.data.box) cell.data.box.material = this.cellMaterials.active
+        cell.data.plane.scale.set(5, 5, 5)
+        this.prevActiveCell = cell
+      }
+
+      getCell(vector) {
+        for (const cell of this.cells) {
+          if (
+            vector.x >= cell.pos.x - this.cellSize / 2 &&
+            vector.x <= cell.pos.x + this.cellSize / 2 &&
+            vector.z >= cell.pos.z - this.cellSize / 2 &&
+            vector.z <= cell.pos.z + this.cellSize / 2
+          ) return cell
+        }
+      }
+
+      create(scene) {
+        const contourMat = new THREE.LineDashedMaterial({ color: 0xffffff, scale: 1, dashSize: 1, gapSize: 0.5 })
+        const contour = [
+          new THREE.Vector3(-this.size / 2, 0, -this.size / 2),
+          new THREE.Vector3(this.size / 2, 0, -this.size / 2),
+          new THREE.Vector3(this.size / 2, 0, this.size / 2),
+          new THREE.Vector3(-this.size / 2, 0, this.size / 2),
+          new THREE.Vector3(-this.size / 2, 0, -this.size / 2)
+        ]
+        this.line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(contour), contourMat)
+        this.line.computeLineDistances()
+        scene.add(this.line)
+
+        const divisionsMat = new THREE.LineBasicMaterial({ color: 0xbbbbbb })
+        for (let i = 0; i < this.divisions; i++) {
+          const hPoints = [
+            new THREE.Vector3(-this.size / 2, 0, -this.size / 2 + i * this.cellSize),
+            new THREE.Vector3(this.size / 2, 0, -this.size / 2 + i * this.cellSize)
+          ]
+          if (i !== 0) scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(hPoints), divisionsMat))
+
+          for (let j = 0; j < this.divisions; j++) {
+            const vPoints = [
+              new THREE.Vector3(-this.size / 2 + j * this.cellSize, 0, -this.size / 2),
+              new THREE.Vector3(-this.size / 2 + j * this.cellSize, 0, this.size / 2)
+            ]
+            if (j !== 0) scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(vPoints), divisionsMat))
+
+            this.cells.push({
+              pos: new THREE.Vector3(
+                -this.size * 0.5 + j * this.cellSize + this.cellSize / 2,
+                0,
+                -this.size * 0.5 + i * this.cellSize + this.cellSize / 2
+              ),
+              data: { active: false }
+            })
+          }
+        }
+
+        for (const cell of this.cells) {
+          const plane = new THREE.Mesh(this.planeGeometry, this.cellMaterials.inactive)
+          scene.add(plane)
+          plane.position.set(cell.pos.x, 0, cell.pos.z)
+          plane.rotation.x = -Math.PI / 2
+          cell.data.plane = plane
+        }
+      }
+    }
+
+    const renderer = new THREE.WebGLRenderer()
+    renderer.setSize(window.innerWidth, window.innerHeight)
+    renderer.setClearColor(0xaaaaaa)
+    document.body.appendChild(renderer.domElement)
+
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 500)
+    const orbitControls = new OrbitControls(camera, renderer.domElement)
+    orbitControls.enableZoom = false
+    orbitControls.enablePan = false
+    orbitControls.enableDamping = true
+    orbitControls.dampingFactor = 0.05
+    orbitControls.minPolarAngle = Math.PI / 4
+    orbitControls.maxPolarAngle = Math.PI / 4
+    camera.position.set(15, 10, 15)
+    camera.lookAt(0, 0, 0)
+    orbitControls.update()
+
+    const scene = new THREE.Scene()
+    const light = new THREE.HemisphereLight(0xb1e1ff, 0xb97a20, 1)
+    scene.add(light)
+
+    const gridDivisions = 10
+    const gridSize = 10
+    const cellSize = gridSize / gridDivisions
+    const grid = new Grid(gridSize, gridDivisions)
+    grid.create(scene)
+
+    const cubeCursor = new THREE.Mesh(
+      new THREE.BoxGeometry(cellSize, cellSize, cellSize),
+      new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0 })
+    )
+    scene.add(cubeCursor)
+
+    const boxGeo = new THREE.BoxGeometry(cellSize, cellSize, cellSize)
+    const boxMat = new THREE.MeshToonMaterial()
+
+    const raycaster = new THREE.Raycaster()
+    const mouse = new THREE.Vector2()
+    const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)
+
+    function getGridPos(event) {
+      mouse.x = (event.clientX / window.innerWidth) * 2 - 1
+      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1
+      raycaster.setFromCamera(mouse, camera)
+      return raycaster.ray.intersectPlane(plane, new THREE.Vector3())
+    }
+
+    window.addEventListener('mousemove', (event) => {
+      if (cubeCursor.material.opacity === 0) cubeCursor.material.opacity = 0.5
+      const intersects = getGridPos(event)
+      if (intersects) {
+        let x = Math.floor(intersects.x / cellSize) * cellSize + cellSize / 2
+        let z = Math.floor(intersects.z / cellSize) * cellSize + cellSize / 2
+        x = Math.max(-gridSize / 2 + cellSize / 2, Math.min(x, gridSize / 2 - cellSize / 2))
+        z = Math.max(-gridSize / 2 + cellSize / 2, Math.min(z, gridSize / 2 - cellSize / 2))
+        cubeCursor.position.set(x, cellSize / 2, z)
+        const cell = grid.getCell(cubeCursor.position)
+        if (cell) grid.activateCell(cell)
+      }
+    })
+
+    window.addEventListener('click', (event) => {
+      const intersects = getGridPos(event)
+      if (intersects) {
+        let x = Math.floor(intersects.x / cellSize) * cellSize + cellSize / 2
+        let z = Math.floor(intersects.z / cellSize) * cellSize + cellSize / 2
+        x = Math.max(-gridSize / 2 + cellSize / 2, Math.min(x, gridSize / 2 - cellSize / 2))
+        z = Math.max(-gridSize / 2 + cellSize / 2, Math.min(z, gridSize / 2 - cellSize / 2))
+        cubeCursor.position.set(x, 0, z)
+        const cell = grid.getCell(cubeCursor.position)
+        if (cell) {
+          if (!cell.data.box) {
+            cell.data.box = new THREE.Mesh(boxGeo, boxMat)
+            cell.data.box.position.set(x, cellSize / 2, z)
+            scene.add(cell.data.box)
+          } else {
+            scene.remove(cell.data.box)
+            cell.data.box = null
+          }
+        }
+      }
+    })
+
+    window.addEventListener('resize', () => {
+      const width = window.innerWidth
+      const height = window.innerHeight
+      renderer.setSize(width, height)
+      camera.aspect = width / height
+      camera.updateProjectionMatrix()
+    })
+
+    renderer.setAnimationLoop(() => {
+      renderer.render(scene, camera)
+      orbitControls.update()
+      const t = Date.now() * 0.005
+      const initialActiveScale = 5
+      for (const cell of grid.cells) {
+        if (cell.data.active) {
+          const s = 1 + Math.sin(t) * 2 + initialActiveScale
+          cell.data.plane.scale.set(s, s, s)
+          if (cell.data.box) {
+            const bs = 1 + Math.sin(t) * 0.1 - 0.2
+            cell.data.box.scale.set(bs, bs, bs)
+          }
+        } else {
+          if (cell.data.box) cell.data.box.scale.set(1, 1, 1)
+        }
+      }
+    })
+  </script>
+</body>
+</html>

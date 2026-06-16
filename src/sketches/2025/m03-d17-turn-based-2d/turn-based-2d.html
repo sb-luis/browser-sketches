@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>turn based 2d</title>
+    <style>
+      html, body { margin: 0; padding: 0; overflow: hidden; }
+    </style>
+  </head>
+  <body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.3/p5.min.js"></script>
+    <script>
+      new p5(function (p) {
+        const grid = []
+        const gridRes = 8
+        const gridPadding = 16
+        let tileSize = 16
+        let character = { pos: [0, 0] }
+
+        function renderGrid() {
+          p.background(100)
+          for (let y = 0; y < gridRes; y++) {
+            for (let x = 0; x < gridRes; x++) {
+              p.fill(15)
+              p.rect(x * tileSize + gridPadding, y * tileSize + gridPadding, tileSize, tileSize)
+            }
+          }
+          const cell = grid[character.pos[1] * gridRes + character.pos[0]]
+          for (let i = 0; i < cell.neighbours.length; i++) {
+            if (cell.neighbours[i] === -1) continue
+            p.fill(150)
+            p.rect(
+              (cell.neighbours[i] % gridRes) * tileSize + gridPadding,
+              Math.floor(cell.neighbours[i] / gridRes) * tileSize + gridPadding,
+              tileSize, tileSize
+            )
+          }
+          p.stroke(255)
+          p.circle(
+            character.pos[0] * tileSize + tileSize / 2 + gridPadding,
+            character.pos[1] * tileSize + tileSize / 2 + gridPadding,
+            tileSize / 2
+          )
+          p.stroke(0)
+        }
+
+        p.setup = () => {
+          tileSize = (Math.min(p.windowWidth, p.windowHeight) - gridPadding * 2) / gridRes
+          p.createCanvas(p.windowWidth, p.windowHeight)
+          for (let y = 0; y < gridRes; y++) {
+            for (let x = 0; x < gridRes; x++) {
+              const N = -1, idx = y * gridRes + x
+              grid[idx] = {
+                neighbours: [
+                  y === 0         ? N : (y-1) * gridRes + x,
+                  x === gridRes-1 ? N : y * gridRes + (x+1),
+                  y === gridRes-1 ? N : (y+1) * gridRes + x,
+                  x === 0         ? N : y * gridRes + (x-1)
+                ]
+              }
+            }
+          }
+        }
+
+        p.draw = () => { renderGrid() }
+
+        p.windowResized = () => {
+          tileSize = (Math.min(p.windowWidth, p.windowHeight) - gridPadding * 2) / gridRes
+          p.resizeCanvas(p.windowWidth, p.windowHeight)
+        }
+
+        document.addEventListener('keyup', e => {
+          if (e.code === 'ArrowLeft'  && character.pos[0] > 0)          character.pos[0]--
+          else if (e.code === 'ArrowRight' && character.pos[0] < gridRes-1) character.pos[0]++
+          else if (e.code === 'ArrowUp'    && character.pos[1] > 0)          character.pos[1]--
+          else if (e.code === 'ArrowDown'  && character.pos[1] < gridRes-1)  character.pos[1]++
+        })
+      })
+    </script>
+  </body>
+</html>

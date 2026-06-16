@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>sin cos</title>
+    <style>
+      html, body { margin: 0; padding: 0; overflow: hidden; }
+    </style>
+  </head>
+  <body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.3/p5.min.js"></script>
+    <script>
+      new p5(function (p) {
+        let period = 120
+        let wave, wave2, wave3
+
+        class Wave {
+          constructor(x, y, amplitude = 10, period = 120, width = 100, resolution = 50, spatialPeriod = p.TWO_PI) {
+            this.pos = p.createVector(x, y)
+            this.width = width
+            this.resolution = resolution
+            this.amplitude = amplitude
+            this.period = period
+            this.spatialPeriod = spatialPeriod
+          }
+
+          render() {
+            for (let i = 0; i < this.resolution; i++) {
+              const xOffset = this.width / this.resolution
+              const tOffset = i / this.resolution
+              let y = this.amplitude * p.sin((p.TWO_PI * p.frameCount / period) + tOffset * this.spatialPeriod)
+              p.circle(this.pos.x + i * xOffset, this.pos.y + y, 5)
+            }
+          }
+        }
+
+        p.setup = () => {
+          p.createCanvas(p.windowWidth, p.windowHeight)
+          wave  = new Wave(100, 150)
+          wave2 = new Wave(100, 350, 80, 10, 350, 100, p.HALF_PI)
+          wave3 = new Wave(300, 150, 80, 10, 50, 200, p.TWO_PI * 3)
+        }
+
+        p.draw = () => {
+          p.background(200)
+          wave.render()
+          wave2.render()
+          wave3.render()
+        }
+      })
+    </script>
+  </body>
+</html>

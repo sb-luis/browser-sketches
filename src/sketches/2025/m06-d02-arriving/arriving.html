@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>arriving</title>
+  <style>body { margin: 0; overflow: hidden; }</style>
+</head>
+<body>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.3/p5.min.js"></script>
+  <script>
+    new p5(function(p) {
+      let vehicle
+
+      p.setup = () => {
+        p.createCanvas(p.windowWidth, p.windowHeight)
+        vehicle = new Vehicle(p.width / 2, p.height / 2)
+      }
+
+      p.draw = () => {
+        p.background(200)
+        const target = p.createVector(p.mouseX, p.mouseY)
+        vehicle.seek(target)
+        vehicle.update()
+        vehicle.render()
+      }
+
+      class Vehicle {
+        constructor(x, y) {
+          this.position = p.createVector(x, y)
+          this.velocity = p.createVector()
+          this.acceleration = p.createVector()
+          this.maxSpeed = 8
+          this.maxForce = 0.5
+          this.mass = 1
+          this.r = 8
+        }
+
+        seek(target) {
+          const desired = p5.Vector.sub(target, this.position)
+
+          const d = desired.mag()
+          if (d < 100) {
+            const m = p.map(d, 0, 100, 0, this.maxSpeed)
+            desired.setMag(m)
+          } else {
+            desired.setMag(this.maxSpeed)
+          }
+          const steer = p5.Vector.sub(desired, this.velocity)
+          steer.limit(this.maxForce)
+          this.applyForce(steer)
+        }
+
+        applyForce(force) {
+          const newForce = p5.Vector.div(force, this.mass)
+          this.acceleration.add(newForce)
+        }
+
+        update() {
+          this.velocity.add(this.acceleration)
+          this.position.add(this.velocity)
+          this.acceleration.mult(0)
+        }
+
+        render() {
+          let angle = this.velocity.heading()
+          p.fill(127)
+          p.push()
+          p.translate(this.position.x, this.position.y)
+          p.rotate(angle)
+          p.beginShape()
+          p.vertex(this.r * 1.25, 0)
+          p.vertex(-this.r * 1.25, -this.r)
+          p.vertex(-this.r * 1.25, this.r)
+          p.endShape(p.CLOSE)
+          p.pop()
+        }
+      }
+    })
+  </script>
+</body>
+</html>
