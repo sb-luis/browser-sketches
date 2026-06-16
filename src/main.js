@@ -5,11 +5,12 @@ const modules = import.meta.glob('./sketches/**/*.html', { query: '?url', import
 // Build { year -> [{ name, label, url }] }
 const index = {}
 for (const [path, url] of Object.entries(modules)) {
-  const m = path.match(/sketches\/(\d{4})\/(m\d+-d\d+-([^/]+))\//)
+  const m = path.match(/sketches\/(\d{4})\/(m(\d+)-d(\d+)-([^/]+))\//)
   if (!m) continue
-  const [, year, folder, slug] = m
+  const [, year, folder, month, day, slug] = m
   const label = slug.replace(/-/g, ' ')
-  ;(index[year] ??= []).push({ folder, label, url })
+  const date = new Date(year, month - 1, day).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+  ;(index[year] ??= []).push({ folder, label, date, url })
 }
 for (const year of Object.keys(index)) {
   index[year].sort((a, b) => b.folder.localeCompare(a.folder))
@@ -27,7 +28,7 @@ document.querySelector('#app').innerHTML = `
     </aside>
     <main class="flex-1 flex flex-col overflow-hidden">
       <div class="h-11 flex items-center justify-between px-4 border-b border-neutral-200 shrink-0">
-        <span id="header" class="text-xs text-neutral-400 font-mono tracking-wide"></span>
+        <div id="header" class="flex gap-2"></div>
         <a id="open-btn" target="_blank" class="text-xs px-2.5 py-1 rounded-md bg-neutral-100 hover:bg-neutral-200 text-neutral-600 transition-colors hidden">Open ↗</a>
       </div>
       <iframe id="frame" class="flex-1 w-full border-0 bg-white"></iframe>
@@ -47,7 +48,8 @@ function select(item, el) {
   active = { item, el }
   el.classList.add('bg-neutral-100', 'text-neutral-900', 'font-medium')
   frame.src = item.url
-  header.textContent = item.folder
+  const pill = 'text-xs px-2.5 py-1 rounded-md bg-neutral-100 text-neutral-600 font-mono'
+  header.innerHTML = `<span class="${pill}">${item.date}</span><span class="${pill} capitalize">${item.label}</span>`
   openBtn.href = item.url
   openBtn.classList.remove('hidden')
 }
