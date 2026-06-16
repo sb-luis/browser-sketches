@@ -6,17 +6,17 @@
     <!-- Make viewport not scalable -->
     <meta name="viewport" content="width=device-width, user-scalable=no" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <title>ants</title>
+    <title>flies</title>
 
     <!-- Favicon -->
-    <link rel="icon" type="image/png" href="favicon.png" />
+	<link rel="icon" type="image/png" href="../../../public/favicon.png" />
 
     <!-- Custom Styles -->
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="../styles.css" />
   </head>
 
   <body>
-    <a class="reset" href="ants.html">.restart</a>
+    <a class="reset" href="flies.html">.restart</a>
     <canvas></canvas>
 
     <!-- Sketch Setup -->
@@ -33,9 +33,9 @@
 	</script>
 
     <!-- Sketch Dependencies-->
-    <script src="lib/math.js"></script>
-    <script src="lib/mouse.js"></script>
-    <script src="lib/agent.js"></script>
+    <script src="../lib/math.js"></script>
+    <script src="../lib/mouse.js"></script>
+    <script src="../lib/agent.js"></script>
 
     <!-- Sketch -->
 	<script>
@@ -63,6 +63,7 @@
 
 	function update() {
 	  requestAnimationFrame(update);
+	  clearCanvas();
 
 	  for (var i = 0; i < agents.length; i++) {
 		agents[i].update();

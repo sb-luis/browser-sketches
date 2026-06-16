@@ -1,0 +1,36 @@
+/*
+For all screens no matter what size - smallest screen
+*/
+[contenteditable]:focus {
+  outline: 0px solid transparent;
+}
+
+body {
+  font-size: 1rem;
+  overscroll-behavior-y: contain;
+  background-color: lightgrey;
+  user-select: none;
+  text-align: left;
+  font-family: 'Inconsolata', monospace;
+}
+
+/* CANVAS */
+canvas {
+  z-index: -1;
+  top: 0;
+  left: 0;
+  position: absolute;
+}
+
+a {
+  margin: 10px;
+  color: grey;
+  position: absolute;
+  right: 10px;
+  font-size: 1.5rem;
+}
+
+a:hover {
+  color: white;
+  text-decoration: none;
+}

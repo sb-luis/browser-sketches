@@ -6,13 +6,13 @@
     <!-- Make viewport not scalable -->
     <meta name="viewport" content="width=device-width, user-scalable=no" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <title>ball 01</title>
+    <title>balls 02</title>
 
     <!-- Favicon -->
-    <link rel="icon" type="image/png" href="favicon.png" />
+	<link rel="icon" type="image/png" href="../../../public/favicon.png" />
 
     <!-- Custom Styles -->
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="../styles.css" />
   </head>
 
   <body>
@@ -33,36 +33,50 @@
 	</script>
 
     <!-- Sketch Dependencies-->
-    <script src="lib/math.js"></script>
-    <script src="lib/mouseVec.js"></script>
-    <script src="lib/time.js"></script>
+    <script src="../lib/math.js"></script>
+    <script src="../lib/mouseVec.js"></script>
+    <script src="../lib/time.js"></script>
 
     <!-- Sketch -->
 	<script>
 
-	// --- VARIABLES ---
-	const r = 32;
-	const speed = 3;
-	const maxSpeed = 5;
-	let pos = new Vector(0,0);
-	let vel = new Vector(0,0);
+	// --- CLASSES ---
+	class Ball{
+		constructor(x = 0, y = 0){
+			this.pos = new Vector(x,y);
+			this.vel = new Vector(0,0);
+		}
+	}
 
+	// --- VARIABLES ---
+	const r = 2;
+	const speed = 10;
+	const maxSpeed = 5;
+	const balls = [];
 
 	// --- FUNCTIONS ---
-	function clampVel(max = 1){
-		//Clamp velocity
-		if(vel.x > max){
-			vel.x = max;
+	function instantiateBalls(n){
+		for(let i = 0; i < n; i++){
+			const ranX = Math.random() * innerWidth;
+			const ranY = Math.random() * innerHeight;
+			const ball = new Ball(ranX,ranY);
+			balls.push(ball);
 		}
-		if(vel.x < -max){
-			vel.x = -max;
+	}
+
+	function clampVector(v, max = 1){
+		if(v.x > max){
+			v.x = max;
+		}
+		if(v.x < -max){
+			v.x = -max;
 		}
 
-		if(vel.y > max){
-			vel.y = max;
+		if(v.y > max){
+			v.y = max;
 		}
-		if(vel.y < -max){
-			vel.y = -max;
+		if(v.y < -max){
+			v.y = -max;
 		}
 	}
 
@@ -80,31 +94,36 @@
 		clearCanvas();
 		canvas.width = window.innerWidth;
 		canvas.height = window.innerHeight;
+		instantiateBalls(550);
 	}
 
 	async function update() {
 		// Tick speed
-		await sleep(5);
+		//await sleep(3);
 
 		// Delete BG
 	  	clearCanvas();
 
-		// Calculate velocity vector
-		let dist = Vector.sub(mouse, pos);
-		let dir = Vector.sub(mouse, pos);
-		dir.normalize();
-		let acc = Vector.mult(dir, 0.2);
-		vel.add(acc);
-		clampVel(maxSpeed);
+		for(let i = 0; i < balls.length; i++){
+			const ball = balls[i];
 
-		// Move ball
-		pos.add(vel);
+			// Calculate velocity vector
+			let dist = Vector.sub(mouse, ball.pos);
+			let dir = Vector.sub(mouse, ball.pos);
+			dir.normalize();
+			let acc = Vector.mult(dir, 0.2);
+			ball.vel.add(acc);
+			clampVector(ball.vel,maxSpeed);
 
-		// Draw ball
-		ctx.beginPath();
-		ctx.arc(pos.x,pos.y,r,0,Math.PI * 2, false);
-		ctx.fillStyle = 'gray';
-		ctx.fill();
+			// Move ball
+			ball.pos.add(ball.vel);
+
+			// Draw ball
+			ctx.beginPath();
+			ctx.arc(ball.pos.x,ball.pos.y,r,0,Math.PI * 2, false);
+			ctx.fillStyle = 'black';
+			ctx.fill();
+		}
 
 		// Debug velocity
 		// drawVector(pos,vel,'blue');
