@@ -23,6 +23,7 @@ document.querySelector('#app').innerHTML = `
     <aside class="w-56 shrink-0 border-r border-neutral-200 flex flex-col overflow-hidden">
       <div class="h-11 flex items-center px-4 border-b border-neutral-200 shrink-0">
         <span class="font-semibold tracking-tight text-base">sketches</span>
+        <span class="ml-2 text-xs px-2 py-0.5 rounded-md bg-neutral-100 text-neutral-400 font-mono">${years.reduce((n, y) => n + index[y].length, 0)}</span>
       </div>
       <nav id="nav" class="flex-1 overflow-y-auto py-2"></nav>
     </aside>
