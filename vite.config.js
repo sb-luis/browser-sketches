@@ -13,6 +13,29 @@ const sketchInputs = Object.fromEntries(
     })
 );
 
+function sketchManifestPlugin() {
+  const virtualId = 'virtual:sketch-manifest'
+  const resolvedId = '\0' + virtualId
+
+  const sketches = Object.keys(sketchInputs).flatMap((key) => {
+    const m = key.match(/sketches\/(\d{4})\/(m(\d+)-d(\d+)-([^/]+))/)
+    if (!m) return []
+    const [, year, folder, month, day, slug] = m
+    const label = slug.replace(/-/g, ' ')
+    const date = new Date(Number(year), Number(month) - 1, Number(day))
+      .toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+    return [{ year, folder, label, date, url: `/${key}/index.html` }]
+  })
+
+  return {
+    name: 'sketch-manifest',
+    resolveId(id) { if (id === virtualId) return resolvedId },
+    load(id) {
+      if (id === resolvedId) return `export default ${JSON.stringify(sketches)}`
+    },
+  }
+}
+
 export default defineConfig({
   root: 'src',
   publicDir: '../public',
@@ -26,7 +49,7 @@ export default defineConfig({
       },
     },
   },
-  plugins: [tailwindcss()],
+  plugins: [tailwindcss(), sketchManifestPlugin()],
   server: {
     proxy: {
       '/geo': {
