@@ -38,6 +38,7 @@ function sketchManifestPlugin() {
 
 export default defineConfig({
   root: 'src',
+  appType: 'mpa',
   publicDir: '../public',
   build: {
     outDir: '../dist',
