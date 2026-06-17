@@ -1,18 +1,26 @@
 import { geoMercator, geoPath } from 'd3';
 
-const DATASET = '/sketches/2026/data/africa_10m_lakes.geojson';
+const DATASETS = {
+  countries: '/sketches/2026/data/africa_110m.geojson',
+  lakes:     '/sketches/2026/data/africa_110m_lakes.geojson',
+};
 
-const canvasEl  = document.getElementById('canvas');
+const svg       = document.getElementById('svg');
 const map       = document.getElementById('map');
 const mSize     = document.getElementById('m-size');
 const mFeatures = document.getElementById('m-features');
 const mRings    = document.getElementById('m-rings');
 const mVerts    = document.getElementById('m-verts');
-const mFetch    = document.getElementById('m-fetch');
 const mRender   = document.getElementById('m-render');
+const mNodes    = document.getElementById('m-nodes');
 
-let cached        = null;
+let currentLakes = false;
+const cache = {};
 let resizePending = false;
+
+function key() {
+  return currentLakes ? 'lakes' : 'countries';
+}
 
 function countGeometry(geojson) {
   let rings = 0, verts = 0;
@@ -31,66 +39,75 @@ function setMetric(el, value) {
   el.classList.remove('loading');
 }
 
+function clearMetrics() {
+  [mSize, mFeatures, mRings, mVerts, mRender, mNodes].forEach(el => {
+    el.textContent = '—';
+    el.classList.add('loading');
+  });
+}
+
 function render(geojson) {
   const w = map.clientWidth;
   const h = map.clientHeight;
 
-  canvasEl.width  = w * devicePixelRatio;
-  canvasEl.height = h * devicePixelRatio;
-  canvasEl.style.width  = w + 'px';
-  canvasEl.style.height = h + 'px';
-
-  const ctx = canvasEl.getContext('2d');
-  ctx.scale(devicePixelRatio, devicePixelRatio);
+  svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
 
   const projection = geoMercator().fitExtent([[20, 20], [w - 20, h - 20]], geojson);
-  const path = geoPath(projection, ctx);
+  const path = geoPath(projection);
 
   const t0 = performance.now();
 
-  ctx.clearRect(0, 0, w, h);
-  ctx.beginPath();
-  for (const f of geojson.features) path(f);
-  ctx.fillStyle = '#1e3a5f';
-  ctx.fill();
-  ctx.strokeStyle = '#5b9bd5';
-  ctx.lineWidth = 0.5;
-  ctx.stroke();
+  const paths = geojson.features.map(f => {
+    const el = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    el.setAttribute('d', path(f));
+    return el;
+  });
+  svg.replaceChildren(...paths);
 
   setMetric(mRender, (performance.now() - t0).toFixed(1) + ' ms');
+  setMetric(mNodes,  paths.length.toLocaleString());
 }
 
-async function init() {
-  [mSize, mFeatures, mRings, mVerts, mFetch, mRender].forEach(el => {
-    el.textContent = '—';
-    el.classList.add('loading');
-  });
+async function load() {
+  const k = key();
+  clearMetrics();
 
-  const t0  = performance.now();
-  const res = await fetch(DATASET);
-  const text = await res.text();
-  const fetchMs = performance.now() - t0;
+  if (!cache[k]) {
+    const res  = await fetch(DATASETS[k]);
+    const text = await res.text();
+    cache[k] = { geojson: JSON.parse(text), size: text.length };
+  }
 
-  cached = JSON.parse(text);
+  const { geojson, size } = cache[k];
+  const { rings, verts } = countGeometry(geojson);
 
-  const { rings, verts } = countGeometry(cached);
-
-  setMetric(mFetch,    fetchMs.toFixed(1) + ' ms');
-  setMetric(mSize,     (text.length / 1024).toFixed(1) + ' KB');
-  setMetric(mFeatures, cached.features.length.toLocaleString());
+  setMetric(mSize,     (size / 1024).toFixed(1) + ' KB');
+  setMetric(mFeatures, geojson.features.length.toLocaleString());
   setMetric(mRings,    rings.toLocaleString());
   setMetric(mVerts,    verts.toLocaleString());
 
-  render(cached);
+  render(geojson);
 }
 
+document.querySelectorAll('.lakes-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const val = btn.dataset.lakes === 'true';
+    if (val === currentLakes) return;
+    document.querySelector('.lakes-btn.active').classList.remove('active');
+    btn.classList.add('active');
+    currentLakes = val;
+    load();
+  });
+});
+
 window.addEventListener('resize', () => {
-  if (!cached || resizePending) return;
+  const k = key();
+  if (!cache[k] || resizePending) return;
   resizePending = true;
   requestAnimationFrame(() => {
-    render(cached);
+    render(cache[k].geojson);
     resizePending = false;
   });
 });
 
-init();
+load();

@@ -10,21 +10,26 @@
     <div id="app">
       <div id="map">
         <svg id="svg" xmlns="http://www.w3.org/2000/svg"></svg>
-        <canvas id="canvas"></canvas>
         <div id="metrics">
-          <div class="metric-row"><span class="metric-label">renderer</span><span class="metric-value" id="m-renderer">—</span></div>
           <div class="metric-row"><span class="metric-label">file size</span><span class="metric-value loading" id="m-size">—</span></div>
           <div class="metric-row"><span class="metric-label">features</span><span class="metric-value loading" id="m-features">—</span></div>
           <div class="metric-row"><span class="metric-label">rings</span><span class="metric-value loading" id="m-rings">—</span></div>
           <div class="metric-row"><span class="metric-label">vertices</span><span class="metric-value loading" id="m-verts">—</span></div>
-          <div class="metric-row"><span class="metric-label">fetch</span><span class="metric-value loading" id="m-fetch">—</span></div>
           <div class="metric-row"><span class="metric-label">render</span><span class="metric-value loading" id="m-render">—</span></div>
           <div class="metric-row"><span class="metric-label">dom nodes</span><span class="metric-value loading" id="m-nodes">—</span></div>
         </div>
       </div>
       <div id="controls">
-        <button class="toggle-btn active" data-renderer="svg">SVG</button>
-        <button class="toggle-btn" data-renderer="canvas">Canvas</button>
+        <div class="control-group">
+          <button class="ctrl-btn lod-btn active" data-lod="110m">110m</button>
+          <button class="ctrl-btn lod-btn" data-lod="50m">50m</button>
+          <button class="ctrl-btn lod-btn" data-lod="10m">10m</button>
+        </div>
+        <div class="separator"></div>
+        <div class="control-group">
+          <button class="ctrl-btn lakes-btn active" data-lakes="false">countries</button>
+          <button class="ctrl-btn lakes-btn" data-lakes="true">without boundary lakes</button>
+        </div>
       </div>
     </div>
     <script type="module" src="./sketch.js"></script>

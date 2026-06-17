@@ -1,23 +1,31 @@
 import { geoNaturalEarth1, geoPath } from 'd3';
 
-const DATASET = '/sketches/2026/data/world_10m_lakes.geojson';
+const DATASETS = {
+  '110m-countries': '/sketches/2026/data/world_110m.geojson',
+  '110m-lakes':     '/sketches/2026/data/world_110m_lakes.geojson',
+  '50m-countries':  '/sketches/2026/data/world_50m.geojson',
+  '50m-lakes':      '/sketches/2026/data/world_50m_lakes.geojson',
+  '10m-countries':  '/sketches/2026/data/world_10m.geojson',
+  '10m-lakes':      '/sketches/2026/data/world_10m_lakes.geojson',
+};
 
-const svgEl    = document.getElementById('svg');
-const canvasEl = document.getElementById('canvas');
-const map      = document.getElementById('map');
-
-const mRenderer = document.getElementById('m-renderer');
+const svg       = document.getElementById('svg');
+const map       = document.getElementById('map');
 const mSize     = document.getElementById('m-size');
 const mFeatures = document.getElementById('m-features');
 const mRings    = document.getElementById('m-rings');
 const mVerts    = document.getElementById('m-verts');
-const mFetch    = document.getElementById('m-fetch');
 const mRender   = document.getElementById('m-render');
 const mNodes    = document.getElementById('m-nodes');
 
-let currentRenderer = 'svg';
-let cached          = null;
-let resizePending   = false;
+let currentLod   = '110m';
+let currentLakes = false;
+const cache = {};
+let resizePending = false;
+
+function key() {
+  return `${currentLod}-${currentLakes ? 'lakes' : 'countries'}`;
+}
 
 function countGeometry(geojson) {
   let rings = 0, verts = 0;
@@ -36,13 +44,18 @@ function setMetric(el, value) {
   el.classList.remove('loading');
 }
 
-function renderSVG(geojson) {
+function clearMetrics() {
+  [mSize, mFeatures, mRings, mVerts, mRender, mNodes].forEach(el => {
+    el.textContent = '—';
+    el.classList.add('loading');
+  });
+}
+
+function render(geojson) {
   const w = map.clientWidth;
   const h = map.clientHeight;
 
-  svgEl.setAttribute('viewBox', `0 0 ${w} ${h}`);
-  svgEl.style.display = '';
-  canvasEl.style.display = 'none';
+  svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
 
   const projection = geoNaturalEarth1().fitExtent([[20, 20], [w - 20, h - 20]], { type: 'Sphere' });
   const path = geoPath(projection);
@@ -54,94 +67,62 @@ function renderSVG(geojson) {
     el.setAttribute('d', path(f));
     return el;
   });
-  svgEl.replaceChildren(...paths);
+  svg.replaceChildren(...paths);
 
   setMetric(mRender, (performance.now() - t0).toFixed(1) + ' ms');
   setMetric(mNodes,  paths.length.toLocaleString());
 }
 
-function renderCanvas(geojson) {
-  const w = map.clientWidth;
-  const h = map.clientHeight;
+async function load() {
+  const k = key();
+  clearMetrics();
 
-  canvasEl.width  = w * devicePixelRatio;
-  canvasEl.height = h * devicePixelRatio;
-  canvasEl.style.width  = w + 'px';
-  canvasEl.style.height = h + 'px';
-  canvasEl.style.display = 'block';
-  svgEl.style.display = 'none';
-
-  const ctx = canvasEl.getContext('2d');
-  ctx.scale(devicePixelRatio, devicePixelRatio);
-
-  const projection = geoNaturalEarth1().fitExtent([[20, 20], [w - 20, h - 20]], { type: 'Sphere' });
-  const path = geoPath(projection, ctx);
-
-  const t0 = performance.now();
-
-  ctx.clearRect(0, 0, w, h);
-  ctx.beginPath();
-  for (const f of geojson.features) path(f);
-  ctx.fillStyle = '#1e3a5f';
-  ctx.fill();
-  ctx.strokeStyle = '#5b9bd5';
-  ctx.lineWidth = 0.5;
-  ctx.stroke();
-
-  setMetric(mRender, (performance.now() - t0).toFixed(1) + ' ms');
-  setMetric(mNodes,  '0');
-}
-
-function render(geojson) {
-  setMetric(mRenderer, currentRenderer);
-  if (currentRenderer === 'svg') {
-    renderSVG(geojson);
-  } else {
-    renderCanvas(geojson);
+  if (!cache[k]) {
+    const res  = await fetch(DATASETS[k]);
+    const text = await res.text();
+    cache[k] = { geojson: JSON.parse(text), size: text.length };
   }
-}
 
-async function init() {
-  [mSize, mFeatures, mRings, mVerts, mFetch, mRender, mNodes].forEach(el => {
-    el.textContent = '—';
-    el.classList.add('loading');
-  });
-  setMetric(mRenderer, currentRenderer);
+  const { geojson, size } = cache[k];
+  const { rings, verts } = countGeometry(geojson);
 
-  const t0  = performance.now();
-  const res = await fetch(DATASET);
-  const text = await res.text();
-  setMetric(mFetch, (performance.now() - t0).toFixed(1) + ' ms');
-
-  cached = JSON.parse(text);
-
-  const { rings, verts } = countGeometry(cached);
-
-  setMetric(mSize,     (text.length / 1024).toFixed(1) + ' KB');
-  setMetric(mFeatures, cached.features.length.toLocaleString());
+  setMetric(mSize,     (size / 1024).toFixed(1) + ' KB');
+  setMetric(mFeatures, geojson.features.length.toLocaleString());
   setMetric(mRings,    rings.toLocaleString());
   setMetric(mVerts,    verts.toLocaleString());
 
-  render(cached);
+  render(geojson);
 }
 
-document.querySelectorAll('.toggle-btn').forEach(btn => {
+document.querySelectorAll('.lod-btn').forEach(btn => {
   btn.addEventListener('click', () => {
-    if (btn.dataset.renderer === currentRenderer) return;
-    document.querySelector('.toggle-btn.active').classList.remove('active');
+    if (btn.dataset.lod === currentLod) return;
+    document.querySelector('.lod-btn.active').classList.remove('active');
     btn.classList.add('active');
-    currentRenderer = btn.dataset.renderer;
-    if (cached) render(cached);
+    currentLod = btn.dataset.lod;
+    load();
+  });
+});
+
+document.querySelectorAll('.lakes-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const val = btn.dataset.lakes === 'true';
+    if (val === currentLakes) return;
+    document.querySelector('.lakes-btn.active').classList.remove('active');
+    btn.classList.add('active');
+    currentLakes = val;
+    load();
   });
 });
 
 window.addEventListener('resize', () => {
-  if (!cached || resizePending) return;
+  const k = key();
+  if (!cache[k] || resizePending) return;
   resizePending = true;
   requestAnimationFrame(() => {
-    render(cached);
+    render(cache[k].geojson);
     resizePending = false;
   });
 });
 
-init();
+load();

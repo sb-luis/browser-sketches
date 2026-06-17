@@ -1,28 +1,16 @@
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-html,
-body {
-  width: 100%;
-  height: 100%;
+html, body {
+  width: 100%; height: 100%;
   background: #0d0d0d;
   color: #e5e5e5;
-  font-family:
-    system-ui,
-    -apple-system,
-    sans-serif;
+  font-family: system-ui, -apple-system, sans-serif;
   font-size: 13px;
   overflow: hidden;
 }
 
 #app {
-  width: 100%;
-  height: 100%;
+  width: 100%; height: 100%;
   display: flex;
   flex-direction: column;
 }
@@ -30,9 +18,7 @@ body {
 #map {
   flex: 1;
   min-height: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  position: relative;
 }
 
 #map svg {
@@ -43,7 +29,7 @@ body {
 #map svg path {
   fill: #1e3a5f;
   stroke: #5b9bd5;
-  stroke-width: 1px;
+  stroke-width: 0.5px;
   stroke-linejoin: round;
   vector-effect: non-scaling-stroke;
 }
@@ -58,7 +44,19 @@ body {
   flex-shrink: 0;
 }
 
-.lod-btn {
+.control-group {
+  display: flex;
+  gap: 4px;
+}
+
+.separator {
+  width: 1px;
+  height: 20px;
+  background: #333;
+  margin: 0 4px;
+}
+
+.ctrl-btn {
   padding: 5px 16px;
   border-radius: 6px;
   border: 1px solid #333;
@@ -68,18 +66,12 @@ body {
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.04em;
-  transition:
-    background 150ms,
-    color 150ms,
-    border-color 150ms;
+  transition: background 150ms, color 150ms, border-color 150ms;
 }
 
-.lod-btn:hover {
-  border-color: #555;
-  color: #ccc;
-}
+.ctrl-btn:hover { border-color: #555; color: #ccc; }
 
-.lod-btn.active {
+.ctrl-btn.active {
   background: #1e3a5f;
   border-color: #5b9bd5;
   color: #a8d0f5;
@@ -89,27 +81,17 @@ body {
   position: absolute;
   top: 12px;
   left: 12px;
-  background: rgba(0, 0, 0, 0.65);
+  background: rgba(0,0,0,0.65);
   backdrop-filter: blur(6px);
   border: 1px solid #222;
   border-radius: 8px;
   padding: 10px 14px;
   line-height: 1.9;
   pointer-events: none;
+  z-index: 10;
 }
 
-.metric-row {
-  display: flex;
-  gap: 10px;
-}
-.metric-label {
-  color: #666;
-  width: 80px;
-}
-.metric-value {
-  color: #e5e5e5;
-  font-variant-numeric: tabular-nums;
-}
-.metric-value.loading {
-  color: #555;
-}
+.metric-row { display: flex; gap: 10px; }
+.metric-label { color: #666; width: 72px; }
+.metric-value { color: #e5e5e5; font-variant-numeric: tabular-nums; }
+.metric-value.loading { color: #555; }
