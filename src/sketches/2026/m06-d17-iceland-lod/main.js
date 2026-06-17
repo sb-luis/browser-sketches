@@ -1,7 +1,4 @@
-import {
-  geoMercator,
-  geoPath,
-} from "https://cdn.jsdelivr.net/npm/d3-geo@3/+esm";
+import { geoMercator, geoPath } from "d3";
 
 const DATA_BASE = "/sketches/2026/data/";
 const DATASETS = {
