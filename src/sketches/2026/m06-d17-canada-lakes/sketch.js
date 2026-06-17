@@ -53,8 +53,9 @@ function render(geojson) {
 
   svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
 
+  const padding = 20;
   const projection = geoMercator().fitExtent(
-    [[20, 20], [w - 20, h - 20]],
+    [[padding, padding], [w - padding, h - padding]],
     geojson
   );
   const path = geoPath(projection);
