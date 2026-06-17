@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>africa — html canvas</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div id="app">
+      <div id="map">
+        <canvas id="canvas"></canvas>
+        <div id="metrics">
+          <div class="metric-row"><span class="metric-label">file size</span><span class="metric-value loading" id="m-size">—</span></div>
+          <div class="metric-row"><span class="metric-label">features</span><span class="metric-value loading" id="m-features">—</span></div>
+          <div class="metric-row"><span class="metric-label">rings</span><span class="metric-value loading" id="m-rings">—</span></div>
+          <div class="metric-row"><span class="metric-label">vertices</span><span class="metric-value loading" id="m-verts">—</span></div>
+          <div class="metric-row"><span class="metric-label">fetch</span><span class="metric-value loading" id="m-fetch">—</span></div>
+          <div class="metric-row"><span class="metric-label">render</span><span class="metric-value loading" id="m-render">—</span></div>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="./sketch.js"></script>
+  </body>
+</html>

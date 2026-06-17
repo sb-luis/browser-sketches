@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>world map</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div id="app">
+      <div id="map">
+        <svg id="svg" xmlns="http://www.w3.org/2000/svg"></svg>
+        <canvas id="canvas"></canvas>
+        <div id="metrics">
+          <div class="metric-row"><span class="metric-label">renderer</span><span class="metric-value" id="m-renderer">—</span></div>
+          <div class="metric-row"><span class="metric-label">file size</span><span class="metric-value loading" id="m-size">—</span></div>
+          <div class="metric-row"><span class="metric-label">features</span><span class="metric-value loading" id="m-features">—</span></div>
+          <div class="metric-row"><span class="metric-label">rings</span><span class="metric-value loading" id="m-rings">—</span></div>
+          <div class="metric-row"><span class="metric-label">vertices</span><span class="metric-value loading" id="m-verts">—</span></div>
+          <div class="metric-row"><span class="metric-label">fetch</span><span class="metric-value loading" id="m-fetch">—</span></div>
+          <div class="metric-row"><span class="metric-label">render</span><span class="metric-value loading" id="m-render">—</span></div>
+          <div class="metric-row"><span class="metric-label">dom nodes</span><span class="metric-value loading" id="m-nodes">—</span></div>
+        </div>
+      </div>
+      <div id="controls">
+        <button class="toggle-btn active" data-renderer="svg">SVG</button>
+        <button class="toggle-btn" data-renderer="canvas">Canvas</button>
+      </div>
+    </div>
+    <script type="module" src="./sketch.js"></script>
+  </body>
+</html>
