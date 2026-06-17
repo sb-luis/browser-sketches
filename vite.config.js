@@ -41,6 +41,7 @@ export default defineConfig({
   publicDir: '../public',
   build: {
     outDir: '../dist',
+    assetsDir: 'sketches/assets',
     emptyOutDir: true,
     rollupOptions: {
       input: {
