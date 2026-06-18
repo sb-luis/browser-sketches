@@ -1,11 +1,11 @@
-import { geoNaturalEarth1, geoPath } from 'd3';
+import { geoMercator, geoPath } from 'd3';
 import { resetMetrics, startFetching, startCached, revealSequentially, formatBytes, formatMs } from '../lib/sketch-metrics.js';
 
 const GEO_API = '/geo/collections';
 const DATASETS = {
-  '110m': `${GEO_API}/ne_110m_admin_0_countries/items?limit=10000`,
-  '50m':  `${GEO_API}/ne_50m_admin_0_countries/items?limit=10000`,
-  '10m':  `${GEO_API}/ne_10m_admin_0_countries/items?limit=10000`,
+  '110m': `${GEO_API}/ne_110m_admin_0_countries/items?limit=10000&ISO_A3=ISL`,
+  '50m':  `${GEO_API}/ne_50m_admin_0_countries/items?limit=10000&ISO_A3=ISL`,
+  '10m':  `${GEO_API}/ne_10m_admin_0_countries/items?limit=10000&ISO_A3=ISL`,
 };
 
 const svg       = document.getElementById('svg');
@@ -18,7 +18,7 @@ const mVerts    = document.getElementById('m-verts');
 const mRender   = document.getElementById('m-render');
 const mNodes    = document.getElementById('m-nodes');
 
-let currentLod = '110m';
+let currentLod = '10m';
 const cache = {};
 let resizePending = false;
 
@@ -39,7 +39,7 @@ function render(geojson) {
   const h = map.clientHeight;
   svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
 
-  const projection = geoNaturalEarth1().fitExtent([[20, 20], [w - 20, h - 20]], { type: 'Sphere' });
+  const projection = geoMercator().fitExtent([[40, 40], [w - 40, h - 40]], geojson);
   const path = geoPath(projection);
   const t0 = performance.now();
 
@@ -82,10 +82,13 @@ async function load() {
 
   const res  = await fetch(DATASETS[currentLod]);
   const text = await res.text();
-  const fetchMs = Math.round(performance.now() - t0);
-  cache[currentLod] = { geojson: JSON.parse(text), size: text.length };
+  cache[currentLod] = {
+    geojson: JSON.parse(text),
+    size:    text.length,
+    fetchMs: Math.round(performance.now() - t0),
+  };
 
-  const { geojson, size } = cache[currentLod];
+  const { geojson, size, fetchMs } = cache[currentLod];
   if (!await doneFetching(fetchMs)) return;
 
   const { rings, verts }        = countGeometry(geojson);

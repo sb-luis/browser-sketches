@@ -1,7 +1,11 @@
 import { geoMercator, geoPath } from 'd3';
-import { resetMetrics, startFetching, revealSequentially, formatBytes, formatMs } from '../lib/sketch-metrics.js';
+import { resetMetrics, startFetching, startCached, revealSequentially, formatBytes, formatMs } from '../lib/sketch-metrics.js';
 
-const URL = '/geo/collections/ne_110m_admin_0_countries_lakes/items?limit=10000&CONTINENT=Africa';
+const GEO_API = '/geo/collections';
+const DATASETS = {
+  countries:       `${GEO_API}/ne_10m_admin_0_countries/items?limit=10000&ISO_A3=CAN`,
+  countries_lakes: `${GEO_API}/ne_10m_admin_0_countries_lakes/items?limit=10000&ISO_A3=CAN`,
+};
 
 const svg       = document.getElementById('svg');
 const map       = document.getElementById('map');
@@ -13,7 +17,8 @@ const mVerts    = document.getElementById('m-verts');
 const mRender   = document.getElementById('m-render');
 const mNodes    = document.getElementById('m-nodes');
 
-let cached = null;
+let current = 'countries';
+const cache = {};
 let resizePending = false;
 
 function countGeometry(geojson) {
@@ -33,7 +38,7 @@ function render(geojson) {
   const h = map.clientHeight;
   svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
 
-  const projection = geoMercator().fitExtent([[20, 20], [w - 20, h - 20]], geojson);
+  const projection = geoMercator().fitExtent([[40, 40], [w - 40, h - 40]], geojson);
   const path = geoPath(projection);
   const t0 = performance.now();
 
@@ -54,22 +59,43 @@ async function load() {
   const t0 = performance.now();
   resetMetrics(svg);
 
+  if (cache[current]) {
+    const { geojson, size } = cache[current];
+    const { rings, verts }        = countGeometry(geojson);
+    const { renderMs, nodeCount } = render(geojson);
+    const cacheMs = Math.round(performance.now() - t0);
+    if (!await startCached(mFetch, cacheMs)) return;
+    revealSequentially([
+      { el: mSize,     ...formatBytes(size) },
+      { el: mFeatures, value: geojson.features.length },
+      { el: mRings,    value: rings },
+      { el: mVerts,    value: verts },
+      { el: mRender,   ...formatMs(renderMs) },
+      { el: mNodes,    value: nodeCount },
+    ]);
+    return;
+  }
+
   const doneFetching = await startFetching(mFetch);
   if (!doneFetching) return;
 
-  const res  = await fetch(URL);
+  const res  = await fetch(DATASETS[current]);
   const text = await res.text();
-  const fetchMs = Math.round(performance.now() - t0);
-  cached = { geojson: JSON.parse(text), size: text.length };
+  cache[current] = {
+    geojson: JSON.parse(text),
+    size:    text.length,
+    fetchMs: Math.round(performance.now() - t0),
+  };
 
+  const { geojson, size, fetchMs } = cache[current];
   if (!await doneFetching(fetchMs)) return;
 
-  const { rings, verts }        = countGeometry(cached.geojson);
-  const { renderMs, nodeCount } = render(cached.geojson);
+  const { rings, verts }        = countGeometry(geojson);
+  const { renderMs, nodeCount } = render(geojson);
 
   revealSequentially([
-    { el: mSize,     ...formatBytes(cached.size) },
-    { el: mFeatures, value: cached.geojson.features.length },
+    { el: mSize,     ...formatBytes(size) },
+    { el: mFeatures, value: geojson.features.length },
     { el: mRings,    value: rings },
     { el: mVerts,    value: verts },
     { el: mRender,   ...formatMs(renderMs) },
@@ -77,11 +103,21 @@ async function load() {
   ]);
 }
 
+document.querySelectorAll('.dataset-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (btn.dataset.dataset === current) return;
+    document.querySelector('.dataset-btn.active').classList.remove('active');
+    btn.classList.add('active');
+    current = btn.dataset.dataset;
+    load();
+  });
+});
+
 window.addEventListener('resize', () => {
-  if (!cached || resizePending) return;
+  if (!cache[current] || resizePending) return;
   resizePending = true;
   requestAnimationFrame(() => {
-    render(cached.geojson);
+    render(cache[current].geojson);
     resizePending = false;
   });
 });

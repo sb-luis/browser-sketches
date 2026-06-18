@@ -2,10 +2,16 @@ import { geoMercator, geoPath } from 'd3';
 import { resetMetrics, startFetching, startCached, revealSequentially, formatBytes, formatMs } from '../lib/sketch-metrics.js';
 
 const GEO_API = '/geo/collections';
+const COUNTRIES = ['CAN', 'USA'];
+
+// Two corners that define the Great Lakes / US-Canada border region
+const FOCUS = {
+  type: 'Feature',
+  geometry: { type: 'MultiPoint', coordinates: [[-100, 37], [-68, 53]] },
+};
 const DATASETS = {
-  '110m': `${GEO_API}/ne_110m_admin_0_countries/items?limit=10000&ISO_A3=THA`,
-  '50m':  `${GEO_API}/ne_50m_admin_0_countries/items?limit=10000&ISO_A3=THA`,
-  '10m':  `${GEO_API}/ne_10m_admin_0_countries/items?limit=10000&ISO_A3=THA`,
+  countries:       `${GEO_API}/ne_10m_admin_0_countries/items?limit=10000`,
+  countries_lakes: `${GEO_API}/ne_10m_admin_0_countries_lakes/items?limit=10000`,
 };
 
 const svg       = document.getElementById('svg');
@@ -18,7 +24,7 @@ const mVerts    = document.getElementById('m-verts');
 const mRender   = document.getElementById('m-render');
 const mNodes    = document.getElementById('m-nodes');
 
-let currentLod = '10m';
+let current = 'countries';
 const cache = {};
 let resizePending = false;
 
@@ -39,7 +45,7 @@ function render(geojson) {
   const h = map.clientHeight;
   svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
 
-  const projection = geoMercator().fitExtent([[40, 40], [w - 40, h - 40]], geojson);
+  const projection = geoMercator().fitExtent([[40, 40], [w - 40, h - 40]], FOCUS);
   const path = geoPath(projection);
   const t0 = performance.now();
 
@@ -56,12 +62,21 @@ function render(geojson) {
   };
 }
 
+async function fetchDataset(dataset) {
+  const results = await Promise.all(
+    COUNTRIES.map(iso => fetch(`${DATASETS[dataset]}&ISO_A3=${iso}`).then(r => r.text()))
+  );
+  const totalSize = results.reduce((sum, t) => sum + t.length, 0);
+  const features = results.flatMap(t => JSON.parse(t).features);
+  return { geojson: { type: 'FeatureCollection', features }, size: totalSize };
+}
+
 async function load() {
   const t0 = performance.now();
   resetMetrics(svg);
 
-  if (cache[currentLod]) {
-    const { geojson, size } = cache[currentLod];
+  if (cache[current]) {
+    const { geojson, size } = cache[current];
     const { rings, verts }        = countGeometry(geojson);
     const { renderMs, nodeCount } = render(geojson);
     const cacheMs = Math.round(performance.now() - t0);
@@ -80,15 +95,10 @@ async function load() {
   const doneFetching = await startFetching(mFetch);
   if (!doneFetching) return;
 
-  const res  = await fetch(DATASETS[currentLod]);
-  const text = await res.text();
-  cache[currentLod] = {
-    geojson: JSON.parse(text),
-    size:    text.length,
-    fetchMs: Math.round(performance.now() - t0),
-  };
+  const { geojson, size } = await fetchDataset(current);
+  const fetchMs = Math.round(performance.now() - t0);
+  cache[current] = { geojson, size };
 
-  const { geojson, size, fetchMs } = cache[currentLod];
   if (!await doneFetching(fetchMs)) return;
 
   const { rings, verts }        = countGeometry(geojson);
@@ -104,21 +114,21 @@ async function load() {
   ]);
 }
 
-document.querySelectorAll('.lod-btn').forEach(btn => {
+document.querySelectorAll('.dataset-btn').forEach(btn => {
   btn.addEventListener('click', () => {
-    if (btn.dataset.lod === currentLod) return;
-    document.querySelector('.lod-btn.active').classList.remove('active');
+    if (btn.dataset.dataset === current) return;
+    document.querySelector('.dataset-btn.active').classList.remove('active');
     btn.classList.add('active');
-    currentLod = btn.dataset.lod;
+    current = btn.dataset.dataset;
     load();
   });
 });
 
 window.addEventListener('resize', () => {
-  if (!cache[currentLod] || resizePending) return;
+  if (!cache[current] || resizePending) return;
   resizePending = true;
   requestAnimationFrame(() => {
-    render(cache[currentLod].geojson);
+    render(cache[current].geojson);
     resizePending = false;
   });
 });
