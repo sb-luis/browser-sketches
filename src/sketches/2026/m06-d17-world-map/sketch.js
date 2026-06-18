@@ -1,12 +1,13 @@
 import { geoNaturalEarth1, geoPath } from 'd3';
 
+const GEO_API = '/geo/collections';
 const DATASETS = {
-  '110m-countries': '/sketches/2026/data/world_110m.geojson',
-  '110m-lakes':     '/sketches/2026/data/world_110m_lakes.geojson',
-  '50m-countries':  '/sketches/2026/data/world_50m.geojson',
-  '50m-lakes':      '/sketches/2026/data/world_50m_lakes.geojson',
-  '10m-countries':  '/sketches/2026/data/world_10m.geojson',
-  '10m-lakes':      '/sketches/2026/data/world_10m_lakes.geojson',
+  '110m-countries': `${GEO_API}/ne_110m_admin_0_countries/items?limit=10000`,
+  '110m-lakes':     `${GEO_API}/ne_110m_admin_0_countries_lakes/items?limit=10000`,
+  '50m-countries':  `${GEO_API}/ne_50m_admin_0_countries/items?limit=10000`,
+  '50m-lakes':      `${GEO_API}/ne_50m_admin_0_countries_lakes/items?limit=10000`,
+  '10m-countries':  `${GEO_API}/ne_10m_admin_0_countries/items?limit=10000`,
+  '10m-lakes':      `${GEO_API}/ne_10m_admin_0_countries_lakes/items?limit=10000`,
 };
 
 const svg       = document.getElementById('svg');

@@ -1,8 +1,9 @@
 import { geoMercator, geoPath } from 'd3';
 
+const GEO_API = '/geo/collections';
 const DATASETS = {
-  countries: '/sketches/2026/data/africa_110m.geojson',
-  lakes:     '/sketches/2026/data/africa_110m_lakes.geojson',
+  countries: `${GEO_API}/ne_110m_admin_0_countries/items?limit=10000&CONTINENT=Africa`,
+  lakes:     `${GEO_API}/ne_110m_admin_0_countries_lakes/items?limit=10000&CONTINENT=Africa`,
 };
 
 const svg       = document.getElementById('svg');

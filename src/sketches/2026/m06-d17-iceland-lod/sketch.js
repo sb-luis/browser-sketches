@@ -1,9 +1,10 @@
 import { geoMercator, geoPath } from 'd3';
 
+const GEO_API = '/geo/collections';
 const DATASETS = {
-  '110m': '/sketches/2026/data/iceland_110m.geojson',
-  '50m':  '/sketches/2026/data/iceland_50m.geojson',
-  '10m':  '/sketches/2026/data/iceland_10m.geojson',
+  '110m': `${GEO_API}/ne_110m_admin_0_countries/items?limit=10000&ISO_A3=ISL`,
+  '50m':  `${GEO_API}/ne_50m_admin_0_countries/items?limit=10000&ISO_A3=ISL`,
+  '10m':  `${GEO_API}/ne_10m_admin_0_countries/items?limit=10000&ISO_A3=ISL`,
 };
 
 const svg       = document.getElementById('svg');
