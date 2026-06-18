@@ -3,8 +3,9 @@ import { resetMetrics, startFetching, startCached, revealSequentially, formatByt
 
 const GEO_API = '/geo/collections';
 const DATASETS = {
-  countries: `${GEO_API}/ne_110m_admin_0_countries/items?limit=10000&CONTINENT=Africa`,
-  lakes:     `${GEO_API}/ne_110m_admin_0_countries_lakes/items?limit=10000&CONTINENT=Africa`,
+  '110m': `${GEO_API}/ne_110m_admin_0_countries/items?limit=10000&ISO_A3=THA`,
+  '50m':  `${GEO_API}/ne_50m_admin_0_countries/items?limit=10000&ISO_A3=THA`,
+  '10m':  `${GEO_API}/ne_10m_admin_0_countries/items?limit=10000&ISO_A3=THA`,
 };
 
 const svg       = document.getElementById('svg');
@@ -17,13 +18,9 @@ const mVerts    = document.getElementById('m-verts');
 const mRender   = document.getElementById('m-render');
 const mNodes    = document.getElementById('m-nodes');
 
-let currentLakes = false;
+let currentLod = '10m';
 const cache = {};
 let resizePending = false;
-
-function key() {
-  return currentLakes ? 'lakes' : 'countries';
-}
 
 function countGeometry(geojson) {
   let rings = 0, verts = 0;
@@ -42,7 +39,7 @@ function render(geojson) {
   const h = map.clientHeight;
   svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
 
-  const projection = geoMercator().fitExtent([[20, 20], [w - 20, h - 20]], geojson);
+  const projection = geoMercator().fitExtent([[40, 40], [w - 40, h - 40]], geojson);
   const path = geoPath(projection);
   const t0 = performance.now();
 
@@ -60,12 +57,11 @@ function render(geojson) {
 }
 
 async function load() {
-  const k  = key();
   const t0 = performance.now();
   resetMetrics(svg);
 
-  if (cache[k]) {
-    const { geojson, size } = cache[k];
+  if (cache[currentLod]) {
+    const { geojson, size } = cache[currentLod];
     const { rings, verts }        = countGeometry(geojson);
     const { renderMs, nodeCount } = render(geojson);
     const cacheMs = Math.round(performance.now() - t0);
@@ -84,15 +80,15 @@ async function load() {
   const doneFetching = await startFetching(mFetch);
   if (!doneFetching) return;
 
-  const res  = await fetch(DATASETS[k]);
+  const res  = await fetch(DATASETS[currentLod]);
   const text = await res.text();
-  cache[k] = {
+  cache[currentLod] = {
     geojson: JSON.parse(text),
     size:    text.length,
     fetchMs: Math.round(performance.now() - t0),
   };
 
-  const { geojson, size, fetchMs } = cache[k];
+  const { geojson, size, fetchMs } = cache[currentLod];
   if (!await doneFetching(fetchMs)) return;
 
   const { rings, verts }        = countGeometry(geojson);
@@ -108,23 +104,21 @@ async function load() {
   ]);
 }
 
-document.querySelectorAll('.lakes-btn').forEach(btn => {
+document.querySelectorAll('.lod-btn').forEach(btn => {
   btn.addEventListener('click', () => {
-    const val = btn.dataset.lakes === 'true';
-    if (val === currentLakes) return;
-    document.querySelector('.lakes-btn.active').classList.remove('active');
+    if (btn.dataset.lod === currentLod) return;
+    document.querySelector('.lod-btn.active').classList.remove('active');
     btn.classList.add('active');
-    currentLakes = val;
+    currentLod = btn.dataset.lod;
     load();
   });
 });
 
 window.addEventListener('resize', () => {
-  const k = key();
-  if (!cache[k] || resizePending) return;
+  if (!cache[currentLod] || resizePending) return;
   resizePending = true;
   requestAnimationFrame(() => {
-    render(cache[k].geojson);
+    render(cache[currentLod].geojson);
     resizePending = false;
   });
 });

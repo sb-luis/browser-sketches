@@ -95,3 +95,4 @@ html, body {
 .metric-label { color: #666; width: 72px; }
 .metric-value { color: #e5e5e5; font-variant-numeric: tabular-nums; }
 .metric-value.loading { color: #555; }
+.metric-unit { color: inherit; }

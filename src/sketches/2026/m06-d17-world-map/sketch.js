@@ -1,4 +1,5 @@
 import { geoNaturalEarth1, geoPath } from 'd3';
+import { resetMetrics, startFetching, startCached, revealSequentially, formatBytes, formatMs } from '../lib/sketch-metrics.js';
 
 const GEO_API = '/geo/collections';
 const DATASETS = {
@@ -12,6 +13,7 @@ const DATASETS = {
 
 const svg       = document.getElementById('svg');
 const map       = document.getElementById('map');
+const mFetch    = document.getElementById('m-fetch');
 const mSize     = document.getElementById('m-size');
 const mFeatures = document.getElementById('m-features');
 const mRings    = document.getElementById('m-rings');
@@ -40,27 +42,13 @@ function countGeometry(geojson) {
   return { rings, verts };
 }
 
-function setMetric(el, value) {
-  el.textContent = value;
-  el.classList.remove('loading');
-}
-
-function clearMetrics() {
-  [mSize, mFeatures, mRings, mVerts, mRender, mNodes].forEach(el => {
-    el.textContent = '—';
-    el.classList.add('loading');
-  });
-}
-
 function render(geojson) {
   const w = map.clientWidth;
   const h = map.clientHeight;
-
   svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
 
   const projection = geoNaturalEarth1().fitExtent([[20, 20], [w - 20, h - 20]], { type: 'Sphere' });
   const path = geoPath(projection);
-
   const t0 = performance.now();
 
   const paths = geojson.features.map(f => {
@@ -70,29 +58,59 @@ function render(geojson) {
   });
   svg.replaceChildren(...paths);
 
-  setMetric(mRender, (performance.now() - t0).toFixed(1) + ' ms');
-  setMetric(mNodes,  paths.length.toLocaleString());
+  return {
+    renderMs:  parseFloat((performance.now() - t0).toFixed(1)),
+    nodeCount: paths.length,
+  };
 }
 
 async function load() {
-  const k = key();
-  clearMetrics();
+  const k  = key();
+  const t0 = performance.now();
+  resetMetrics(svg);
 
-  if (!cache[k]) {
-    const res  = await fetch(DATASETS[k]);
-    const text = await res.text();
-    cache[k] = { geojson: JSON.parse(text), size: text.length };
+  if (cache[k]) {
+    const { geojson, size } = cache[k];
+    const { rings, verts }        = countGeometry(geojson);
+    const { renderMs, nodeCount } = render(geojson);
+    const cacheMs = Math.round(performance.now() - t0);
+    if (!await startCached(mFetch, cacheMs)) return;
+    revealSequentially([
+      { el: mSize,     ...formatBytes(size) },
+      { el: mFeatures, value: geojson.features.length },
+      { el: mRings,    value: rings },
+      { el: mVerts,    value: verts },
+      { el: mRender,   ...formatMs(renderMs) },
+      { el: mNodes,    value: nodeCount },
+    ]);
+    return;
   }
 
-  const { geojson, size } = cache[k];
-  const { rings, verts } = countGeometry(geojson);
+  const doneFetching = await startFetching(mFetch);
+  if (!doneFetching) return;
 
-  setMetric(mSize,     (size / 1024).toFixed(1) + ' KB');
-  setMetric(mFeatures, geojson.features.length.toLocaleString());
-  setMetric(mRings,    rings.toLocaleString());
-  setMetric(mVerts,    verts.toLocaleString());
+  const res  = await fetch(DATASETS[k]);
+  const text = await res.text();
+  cache[k] = {
+    geojson: JSON.parse(text),
+    size:    text.length,
+    fetchMs: Math.round(performance.now() - t0),
+  };
 
-  render(geojson);
+  const { geojson, size, fetchMs } = cache[k];
+  if (!await doneFetching(fetchMs)) return;
+
+  const { rings, verts }        = countGeometry(geojson);
+  const { renderMs, nodeCount } = render(geojson);
+
+  revealSequentially([
+    { el: mSize,     ...formatBytes(size) },
+    { el: mFeatures, value: geojson.features.length },
+    { el: mRings,    value: rings },
+    { el: mVerts,    value: verts },
+    { el: mRender,   ...formatMs(renderMs) },
+    { el: mNodes,    value: nodeCount },
+  ]);
 }
 
 document.querySelectorAll('.lod-btn').forEach(btn => {
