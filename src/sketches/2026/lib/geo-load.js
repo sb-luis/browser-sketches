@@ -1,109 +1,71 @@
-import { createMetrics, countGeometry, formatBytes, formatMs } from './geo-metrics.js';
+import { fetchGeo } from './geo-fetch.js';
+import { createMetrics, formatBytes, formatMs, countGeometry } from './geo-metrics.js';
 
 /**
- * loadAndRenderGeo(url, renderFn, stats?, fetchFn?)
+ * D3/SVG convenience wrapper around fetchGeo + createMetrics.
  *
- * url      — URL to fetch GeoJSON from, or a cache key when fetchFn is provided
- * renderFn — async (geojson) => void; draws to the SVG, returns nothing
- * stats    — optional array of metrics to show after fetch, e.g. ['size', 'render'].
- *            If omitted, no metrics panel is rendered.
- *            If provided (even []), 'fetch' is always shown first.
- * fetchFn  — optional (key) => Promise<{ geojson, size }> for parallel or custom fetching
+ * Handles: fetch → clear SVG → render → reveal metrics → resize re-render.
+ * For ThreeJS or other renderers, use fetchGeo + createMetrics directly instead.
+ *
+ * @param {string} url         - GeoJSON endpoint (also used as cache key).
+ * @param {Function} renderFn  - async (geojson) => void; draws into the SVG.
+ * @param {string[]} stats     - Which extra rows to show, e.g. ['size', 'verts', 'render'].
+ * @param {Function} [fetchFn] - Optional custom fetch: (url) => Promise<{geojson, size}>.
  */
 
+const METRIC_DEFS = {
+  size:     'file size',
+  features: 'features',
+  rings:    'rings',
+  verts:    'vertices',
+  render:   'render',
+  nodes:    'dom nodes',
+};
+
 let metrics = null;
-let activeStats = [];
-const cache = new Map();
-let lastUrl = null;
+let lastGeojson = null;
 let lastRenderFn = null;
-let resizePending = false;
-let initialized = false;
+let gen = 0;
 
-export async function loadAndRenderGeo(url, renderFn, stats, fetchFn) {
+export async function loadAndRenderGeo(url, renderFn, stats = [], fetchFn) {
   const svgEl = document.getElementById('svg');
+  const mapEl = document.getElementById('map');
 
-  if (!initialized) {
-    initialized = true;
-    if (stats !== undefined) {
-      metrics = createMetrics(stats);
-      activeStats = stats;
-    }
+  if (!metrics) {
+    metrics = createMetrics(mapEl, stats.map(k => ({ key: k, label: METRIC_DEFS[k] ?? k })));
     window.addEventListener('resize', () => {
-      if (!lastUrl || resizePending) return;
-      resizePending = true;
-      requestAnimationFrame(async () => {
-        await lastRenderFn(cache.get(lastUrl).geojson);
-        resizePending = false;
-      });
+      if (lastGeojson && lastRenderFn) lastRenderFn(lastGeojson);
     });
   }
 
+  const myGen = ++gen;
   lastRenderFn = renderFn;
+
+  metrics.reset();
+  svgEl.replaceChildren();
+
+  const stop = metrics.startFetch();
+  const { geojson, size, fetchMs, fromCache } = await fetchGeo(url, fetchFn);
+  if (myGen !== gen) return;
+  await stop(fetchMs, { fromCache });
+  if (myGen !== gen) return;
+
   const t0 = performance.now();
-
-  if (metrics) metrics.reset(svgEl);
-  else svgEl.replaceChildren();
-
-  if (cache.has(url)) {
-    const { geojson, size } = cache.get(url);
-    lastUrl = url;
-    const t1 = performance.now();
-    await renderFn(geojson);
-    const renderMs = parseFloat((performance.now() - t1).toFixed(1));
-    if (metrics) {
-      const cacheMs = Math.round(performance.now() - t0);
-      if (!await metrics.startCached(metrics.els.fetch, cacheMs)) return;
-      metrics.reveal(buildRevealItems(svgEl, geojson, size, renderMs));
-    }
-    return;
-  }
-
-  let done;
-  if (metrics) {
-    done = await metrics.startFetch(metrics.els.fetch);
-    if (!done) return;
-  }
-
-  let geojson, size;
-  if (fetchFn) {
-    ({ geojson, size } = await fetchFn(url));
-  } else {
-    const res  = await fetch(url);
-    const text = await res.text();
-    geojson = JSON.parse(text);
-    size    = text.length;
-  }
-
-  const fetchMs = Math.round(performance.now() - t0);
-  cache.set(url, { geojson, size });
-  lastUrl = url;
-
-  if (metrics) {
-    if (!await done(fetchMs)) return;
-  }
-
-  const t1 = performance.now();
   await renderFn(geojson);
-  const renderMs = parseFloat((performance.now() - t1).toFixed(1));
+  if (myGen !== gen) return;
+  lastGeojson = geojson;
+  const renderMs = performance.now() - t0;
 
-  if (metrics) {
-    metrics.reveal(buildRevealItems(svgEl, geojson, size, renderMs));
-  }
-}
+  const { rings, verts } = countGeometry(geojson);
+  const revealItems = stats.map(k => {
+    if (k === 'size')     return { key: k, ...formatBytes(size) };
+    if (k === 'features') return { key: k, value: geojson.features.length };
+    if (k === 'rings')    return { key: k, value: rings };
+    if (k === 'verts')    return { key: k, value: verts };
+    if (k === 'render')   return { key: k, ...formatMs(renderMs) };
+    if (k === 'nodes')    return { key: k, value: svgEl.children.length };
+    return null;
+  }).filter(Boolean);
 
-function buildRevealItems(svgEl, geojson, size, renderMs) {
-  const needsGeometry = activeStats.includes('rings') || activeStats.includes('verts');
-  const geo = needsGeometry ? countGeometry(geojson) : {};
-  const nodeCount = svgEl.children.length;
-  const valueFor = {
-    size:     () => formatBytes(size),
-    features: () => ({ value: geojson.features.length }),
-    rings:    () => ({ value: geo.rings }),
-    verts:    () => ({ value: geo.verts }),
-    render:   () => formatMs(renderMs),
-    nodes:    () => ({ value: nodeCount }),
-  };
-  return activeStats
-    .filter(s => metrics.els[s] && valueFor[s])
-    .map(s => ({ el: metrics.els[s], ...valueFor[s]() }));
+  metrics.reveal(revealItems);
 }

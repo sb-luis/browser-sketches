@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { addGlobeRefLines } from '../lib/globe-ref-lines.js';
+import { fetchGeo } from '../lib/geo-fetch.js';
+import { createMetrics, formatBytes } from '../lib/geo-metrics.js';
 
 const OCEAN_COLOR = 0x1e3a8a;
 const BACKGROUND_COLOR = 0x000000;
@@ -61,7 +63,6 @@ function renderAllCountries(geojson, material) {
 // scene setup 
 
 const canvas = document.getElementById('canvas');
-const loadingEl = document.getElementById('loading');
 
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -87,15 +88,27 @@ scene.add(new THREE.Mesh(
 
 addGlobeRefLines(scene, { accentOpacity: 0.35, dimOpacity: 0.1 });
 
-// fetch & draw all countries 
+// metrics
 
-fetch(GEO_URL)
-  .then((r) => r.json())
-  .then((geojson) => {
-    const borders = renderAllCountries(geojson, makeBorderMaterial());
-    scene.add(borders);
-    loadingEl.classList.add('hidden');
-  });
+const metrics = createMetrics(document.getElementById('hud'), [
+  { key: 'size', label: 'file size' },
+  { key: 'features', label: 'features' },
+]);
+
+// fetch & draw all countries
+
+(async () => {
+  const stop = metrics.startFetch();
+  const { geojson, size, fetchMs, fromCache } = await fetchGeo(GEO_URL);
+  await stop(fetchMs, { fromCache });
+
+  scene.add(renderAllCountries(geojson, makeBorderMaterial()));
+
+  metrics.reveal([
+    { key: 'size', ...formatBytes(size) },
+    { key: 'features', value: geojson.features.length },
+  ]);
+})();
 
 // fov zoom via scroll wheel 
 

@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { addGlobeRefLines } from '../lib/globe-ref-lines.js';
+import { fetchGeo } from '../lib/geo-fetch.js';
+import { createMetrics, formatBytes } from '../lib/geo-metrics.js';
 
 const OCEAN_COLOR = 0x1e3a8a;
 const COUNTRY_COLOR = 0xffffff;
@@ -76,7 +78,14 @@ addGlobeRefLines(scene, {
   dimOpacity: 0.1,
 });
 
-// fetch and draw 
+// metrics
+
+const metrics = createMetrics(document.getElementById('hud'), [
+  { key: 'size', label: 'file size' },
+  { key: 'features', label: 'features' },
+]);
+
+// fetch and draw
 
 const countryMaterial = new THREE.LineBasicMaterial({
   color: COUNTRY_COLOR,
@@ -84,13 +93,20 @@ const countryMaterial = new THREE.LineBasicMaterial({
   depthWrite: false,
 });
 
-fetch(GEO_URL)
-  .then((r) => r.json())
-  .then((geojson) => {
-    for (const feature of geojson.features) {
-      renderCountry(feature, countryMaterial, scene);
-    }
-  });
+(async () => {
+  const stop = metrics.startFetch();
+  const { geojson, size, fetchMs, fromCache } = await fetchGeo(GEO_URL);
+  await stop(fetchMs, { fromCache });
+
+  for (const feature of geojson.features) {
+    renderCountry(feature, countryMaterial, scene);
+  }
+
+  metrics.reveal([
+    { key: 'size', ...formatBytes(size) },
+    { key: 'features', value: geojson.features.length },
+  ]);
+})();
 
 // FOV zoom 
 
