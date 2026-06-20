@@ -1,0 +1,12 @@
+html, body { margin: 0; width: 100%; height: 100%; background: #0d0d0d; color: #e5e5e5; font-family: system-ui, -apple-system, sans-serif; font-size: 13px; overflow: hidden; }
+
+#map { width: 100%; height: 100%; position: relative; }
+#map svg { width: 100%; height: 100%; }
+#map svg path { fill: #1e3a5f; stroke: #5b9bd5; stroke-width: 0.5px; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+
+#metrics { position: absolute; top: 12px; left: 12px; background: rgba(0,0,0,0.65); backdrop-filter: blur(6px); border: 1px solid #222; border-radius: 8px; padding: 10px 14px; line-height: 1.9; pointer-events: none; }
+.metric-row { display: flex; gap: 10px; }
+.metric-label { color: #666; width: 72px; }
+.metric-value { color: #e5e5e5; font-variant-numeric: tabular-nums; }
+.metric-value.loading { color: #555; }
+.metric-unit { color: inherit; }
