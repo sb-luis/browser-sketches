@@ -1,5 +1,5 @@
 import { geoMercator, geoPath } from 'd3';
-import { loadAndRenderGeo } from '../lib/geo-load.js';
+import { loadAndRenderGeo } from '../lib/d3-geo.js';
 
 const svg = document.getElementById('svg');
 const map = document.getElementById('map');
