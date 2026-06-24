@@ -1,9 +1,8 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { addGlobeRefLines } from '../lib/globe-ref-lines.js';
+import { C_OCEAN, C_BACKGROUND, C_REF_LINE } from '../lib/geo-color-palette.js';
 
-const OCEAN_COLOR = 0x1e3a8a;
-const BACKGROUND_COLOR = 0x000000;
 const GLOBE_RADIUS = 1;
 const CAMERA_DISTANCE = 3;
 const MIN_FOV = 0.3;
@@ -28,7 +27,7 @@ function rotateSpeed(fov) {
 const canvas = document.getElementById('canvas');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-renderer.setClearColor(BACKGROUND_COLOR, 1);
+renderer.setClearColor(C_BACKGROUND, 1);
 
 const scene = new THREE.Scene();
 
@@ -45,10 +44,10 @@ controls.maxDistance = CAMERA_DISTANCE;
 
 scene.add(new THREE.Mesh(
   new THREE.SphereGeometry(GLOBE_RADIUS, 64, 64),
-  new THREE.MeshBasicMaterial({ color: OCEAN_COLOR }),
+  new THREE.MeshBasicMaterial({ color: C_OCEAN }),
 ));
 
-addGlobeRefLines(scene, { meridianStep: 30, parallelStep: 30 });
+addGlobeRefLines(scene, { color: C_REF_LINE, meridianStep: 30, parallelStep: 30 });
 
 // ─── FOV zoom via scroll wheel ────────────────────────────────────────────────
 

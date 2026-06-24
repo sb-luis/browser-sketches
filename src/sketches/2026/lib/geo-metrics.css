@@ -1,0 +1,30 @@
+/* Floating stats panel (top-left overlay) */
+#metrics {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: var(--ui-panel-bg);
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--ui-panel-border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  line-height: 1.9;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 13px;
+  color: var(--ui-text);
+  pointer-events: none;
+  z-index: 10;
+}
+
+.metric-row   { display: flex; gap: 10px; }
+.metric-label { color: var(--ui-text-muted); width: 52px; }
+.metric-value { color: var(--ui-text); font-variant-numeric: tabular-nums; }
+.metric-value.loading { color: var(--ui-text-dim); }
+.metric-unit  { color: inherit; }
+
+.metric-divider { border-top: 1px solid var(--ui-divider); margin: 6px 0; }
+
+/* LOD legend dots (used in globe-lod-levels) */
+.legend-row   { display: flex; align-items: center; gap: 8px; line-height: 1.9; }
+.legend-dot   { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.legend-label { color: var(--ui-text-muted); font-size: 12px; }

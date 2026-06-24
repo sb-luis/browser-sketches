@@ -15,7 +15,11 @@ async function render(geojson) {
   svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
   const projection = geoNaturalEarth1().fitExtent([[20, 20], [w - 20, h - 20]], { type: 'Sphere' });
   const path = geoPath(projection);
-  svg.replaceChildren(...geojson.features.map(f => {
+  const ocean = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  ocean.setAttribute('d', path({ type: 'Sphere' }));
+  ocean.setAttribute('class', 'ocean');
+
+  svg.replaceChildren(ocean, ...geojson.features.map(f => {
     const el = document.createElementNS('http://www.w3.org/2000/svg', 'path');
     el.setAttribute('d', path(f));
     return el;

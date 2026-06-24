@@ -46,13 +46,14 @@ export function addGlobeRefLines(scene, {
   dimOpacity = 0.25,
   showArcticAntarctic = false,
   showPoles = false,
+  color = 0xffffff,
 } = {}) {
   const accentLine = new THREE.LineBasicMaterial({
-    color: 0xffffff, transparent: true, opacity: accentOpacity,
+    color, transparent: true, opacity: accentOpacity,
     depthTest: true, depthWrite: false,
   });
   const dimLine = new THREE.LineBasicMaterial({
-    color: 0xffffff, transparent: true, opacity: dimOpacity,
+    color, transparent: true, opacity: dimOpacity,
     depthTest: true, depthWrite: false,
   });
 

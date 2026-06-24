@@ -1,6 +1,11 @@
 @import '../lib/geo-color-palette.css';
 @import '../lib/geo-metrics.css';
+@import '../lib/geo-minimap.css';
+@import '../lib/geo-switches.css';
 
 html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: var(--geo-bg); }
 #canvas { display: block; width: 100%; height: 100%; }
 #hud { position: fixed; inset: 0; pointer-events: none; }
+
+/* allow pointer events on metrics so checkboxes work */
+#metrics { pointer-events: auto; }

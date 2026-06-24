@@ -1,0 +1,22 @@
+/* Culling / LOD minimap (bottom-right) */
+#minimap {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  width: 216px;
+  height: 108px;
+  border: 1px solid var(--ui-panel-border);
+  border-radius: 4px;
+  image-rendering: pixelated;
+}
+
+#minimap-label {
+  position: absolute;
+  bottom: 124px;
+  right: 12px;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 10px;
+  color: var(--ui-text-dim);
+  text-align: right;
+  letter-spacing: 0.04em;
+}

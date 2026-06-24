@@ -1,0 +1,71 @@
+@import '../lib/geo-color-palette.css';
+@import '../lib/geo-metrics.css';
+@import '../lib/geo-label.css';
+
+html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: var(--geo-bg); }
+#canvas { display: block; width: 100%; height: 100%; cursor: crosshair; }
+#hud { position: fixed; inset: 0; pointer-events: none; }
+
+/* ── Color picker controls panel (unique to this sketch) ─────────────────── */
+#controls {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: var(--ui-panel-bg);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--ui-panel-border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 13px;
+  color: var(--ui-text);
+  pointer-events: all;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 190px;
+  user-select: none;
+}
+
+.color-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.color-label { color: var(--ui-text-muted); flex: 1; }
+
+.color-picker {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 40px;
+  height: 22px;
+  border: 1px solid var(--ui-panel-border);
+  border-radius: 4px;
+  cursor: pointer;
+  padding: 1px;
+  background: transparent;
+  pointer-events: all;
+}
+.color-picker::-webkit-color-swatch-wrapper { padding: 0; }
+.color-picker::-webkit-color-swatch { border: none; border-radius: 2px; }
+
+.controls-divider { border-top: 1px solid var(--ui-divider); margin: 2px 0; }
+
+.ctrl-btn {
+  padding: 6px 10px;
+  background: transparent;
+  border: 1px solid var(--ui-panel-border);
+  border-radius: 6px;
+  color: var(--ui-text-muted);
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  text-align: center;
+  pointer-events: all;
+}
+.ctrl-btn:hover { background: rgba(0,0,0,0.04); color: var(--ui-text); border-color: #aaa; }
+
+#copy-btn.copied { color: #2d9e5f; border-color: #2d9e5f; }

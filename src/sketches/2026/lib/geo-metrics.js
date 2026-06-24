@@ -1,8 +1,9 @@
 import gsap from 'gsap';
 import 'number-flow';
 
-const NF_DURATION = 700;
-const NF_EASING   = 'cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+const NF_DURATION   = 700;
+const LIVE_DURATION = 200;
+const NF_EASING     = 'cubic-bezier(0.25, 0.46, 0.45, 0.94)';
 
 const sleep     = ms => new Promise(r => setTimeout(r, ms));
 const nextFrame = ()  => new Promise(r => requestAnimationFrame(r));
@@ -76,18 +77,34 @@ async function snapToZero(nf, gen, getGen) {
  *
  * @param {HTMLElement} container  - Any positioned DOM element to host the panel.
  * @param {Array<{key: string, label: string}>} metricDefs
- *   Ordered list of metric rows to display after the always-present 'fetch' row.
- *   The sketch computes values and passes them to `reveal()`.
+ *   Ordered list of metric rows. Rows without `live: true` are hidden initially
+ *   and revealed with animation via `reveal()`. Rows with `live: true` are
+ *   visible immediately and updated via `set()` (plain text, no animation —
+ *   intended for per-frame values like active cell counts).
+ * @param {{ fetch?: boolean }} [opts]
+ *   `fetch` (default `true`) — whether to include the animated fetch-timer row.
+ *   Set to `false` for sketches that don't load remote data.
  *
- * @returns {{ startFetch, reveal, reset }}
+ * @returns {{ panel, startFetch?, reveal, reset, set }}
+ *   `panel` is the DOM element — append extra content (e.g. switches) to it.
+ *   `startFetch` is only present when `fetch: true`.
  *
- * Usage:
- *   const stop = metrics.startFetch()
+ * Usage (with fetch):
+ *   const { startFetch, reveal } = createMetrics(hud, [...])
+ *   const stop = startFetch()
  *   const { geojson, size, fetchMs, fromCache } = await fetchGeo(url)
  *   await stop(fetchMs, { fromCache })
- *   metrics.reveal([{ key: 'size', ...formatBytes(size) }, ...])
+ *   reveal([{ key: 'size', ...formatBytes(size) }, ...])
+ *
+ * Usage (without fetch, with live rows):
+ *   const { set } = createMetrics(hud, [
+ *     { key: 'active', label: 'active', live: true },
+ *     { key: 'total',  label: 'total',  live: true },
+ *   ], { fetch: false })
+ *   // each frame:
+ *   set('active', 312, ' cells')
  */
-export function createMetrics(container, metricDefs = []) {
+export function createMetrics(container, metricDefs = [], { fetch: includeFetch = true } = {}) {
   const panel = document.createElement('div');
   panel.id = 'metrics';
   const els = {};
@@ -95,6 +112,7 @@ export function createMetrics(container, metricDefs = []) {
   function makeRow(key, label) {
     const row     = document.createElement('div');
     row.className = 'metric-row';
+    gsap.set(row, { autoAlpha: 0 }); // all rows start hidden
     const labelEl = document.createElement('span');
     labelEl.className = 'metric-label';
     labelEl.textContent = label;
@@ -106,7 +124,9 @@ export function createMetrics(container, metricDefs = []) {
     return val;
   }
 
-  els.fetch = makeRow('fetch', 'fetch');
+  if (includeFetch) {
+    els.fetch = makeRow('fetch', 'fetch');
+  }
   for (const { key, label } of metricDefs) {
     els[key] = makeRow(key, label);
   }
@@ -116,9 +136,11 @@ export function createMetrics(container, metricDefs = []) {
   let gen = 0;
   let fetchInterval = null;
   const getGen = () => gen;
+  const liveRevealed = new Set();
 
   function reset() {
     gen++;
+    liveRevealed.clear();
     if (fetchInterval !== null) { clearInterval(fetchInterval); fetchInterval = null; }
     gsap.killTweensOf(panel.querySelectorAll('.metric-row'));
     gsap.set(panel.querySelectorAll('.metric-row'), { autoAlpha: 0 });
@@ -180,15 +202,40 @@ export function createMetrics(container, metricDefs = []) {
       if (!el) continue;
       const row = el.closest('.metric-row');
       const nf  = ensureNF(el);
+      el.classList.remove('loading');
       nf.transformTiming  = { duration, easing };
       nf.opacityTiming    = { duration: Math.round(duration * 0.5), easing: 'ease-out' };
       el._unit.textContent = unit;
       if (!await snapToZero(nf, snap, getGen)) return;
       if (!await revealRow(row, snap, getGen)) return;
+      liveRevealed.add(key);
       nf.update(value);
       await sleep(120);
     }
   }
 
-  return { startFetch, reveal, reset };
+  /**
+   * Updates a metric value with number-flow animation — intended for live per-frame updates.
+   * On the first call the row slides in (same init animation as static rows). Subsequent
+   * calls animate only the number, not the row, so rapid updates aren't jarring.
+   */
+  function set(key, value, unit = '') {
+    const el = els[key];
+    if (!el) return;
+    const nf  = ensureNF(el);
+    el.classList.remove('loading');
+    el._unit.textContent = unit;
+    nf.transformTiming = { duration: LIVE_DURATION, easing: NF_EASING };
+    nf.opacityTiming   = { duration: Math.round(LIVE_DURATION * 0.5), easing: 'ease-out' };
+    nf.update(typeof value === 'number' ? value : parseFloat(value));
+    if (!liveRevealed.has(key)) {
+      liveRevealed.add(key);
+      liveRevealQueue.push(el.closest('.metric-row'));
+      drainLiveRevealQueue(gen);
+    }
+  }
+
+  const result = { panel, reveal, reset, set };
+  if (includeFetch) result.startFetch = startFetch;
+  return result;
 }

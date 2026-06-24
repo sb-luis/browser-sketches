@@ -1,0 +1,17 @@
+:root {
+  /* ── Map element colors ──────────────────────────────────────────────────── */
+  --geo-bg:       #f3f3f3;  /* page / canvas background */
+  --geo-ocean:    #427cdf;  /* ocean fill */
+  --geo-land:     #d4d8db;  /* land fill */
+  --geo-border:   #4e5958;  /* country border lines */
+  --geo-selected: #fefff9;  /* selected country fill */
+
+  /* ── UI chrome ───────────────────────────────────────────────────────────── */
+  --ui-panel-bg:     rgba(255, 255, 255, 0.82);
+  --ui-panel-border: #ddd;
+  --ui-text:         #333;
+  --ui-text-muted:   #999;
+  --ui-text-dim:     #bbb;
+  --ui-divider:      #eee;
+  --ui-accent:       #427cdf;  /* active states, highlighted labels */
+}

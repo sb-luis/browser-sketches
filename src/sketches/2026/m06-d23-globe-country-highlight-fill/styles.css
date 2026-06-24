@@ -1,6 +1,7 @@
 @import '../lib/geo-color-palette.css';
 @import '../lib/geo-metrics.css';
+@import '../lib/geo-label.css';
 
 html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: var(--geo-bg); }
-#canvas { display: block; width: 100%; height: 100%; }
+#canvas { display: block; width: 100%; height: 100%; cursor: crosshair; }
 #hud { position: fixed; inset: 0; pointer-events: none; }
