@@ -344,9 +344,13 @@ canvas.addEventListener('dblclick', e => {
   const features = geojsons[activeLod]?.features ?? [];
   const name = pickCountry(lon, lat, features);
 
-  // Deselect old
-  if (selectedGroup) {
-    applyMaterialToGroup(selectedGroup, fillDimMaterial);
+  // Deselect old — clear from all loaded LODs, not just the active one
+  if (selectedName) {
+    for (let i = 0; i < groups.length; i++) {
+      if (!loaded[i] || !groups[i]) continue;
+      const g = groups[i].fillMap.get(selectedName);
+      if (g) applyMaterialToGroup(g, fillDimMaterial);
+    }
     selectedGroup = null;
   }
 
