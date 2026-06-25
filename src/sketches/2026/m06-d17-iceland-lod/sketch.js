@@ -30,4 +30,4 @@ document.querySelectorAll('.lod-btn').forEach(btn => {
   });
 });
 
-loadAndRenderGeo(DATASETS['10m'], render, ['size', 'verts']);
+loadAndRenderGeo(DATASETS['50m'], render, ['size', 'verts']);

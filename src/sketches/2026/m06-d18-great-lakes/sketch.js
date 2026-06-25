@@ -44,4 +44,4 @@ document.querySelectorAll('.dataset-btn').forEach(btn => {
   });
 });
 
-loadAndRenderGeo('countries', render, [], fetchDataset);
+loadAndRenderGeo('countries_lakes', render, [], fetchDataset);

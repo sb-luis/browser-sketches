@@ -40,4 +40,4 @@ document.querySelectorAll('.dataset-btn').forEach(btn => {
   });
 });
 
-loadAndRenderGeo('countries', render, ['rings', 'verts'], fetchDataset);
+loadAndRenderGeo('countries_lakes', render, ['rings', 'verts'], fetchDataset);
